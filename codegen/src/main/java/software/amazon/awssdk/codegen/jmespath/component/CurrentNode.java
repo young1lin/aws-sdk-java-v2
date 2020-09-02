@@ -15,5 +15,5 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
-public interface CurrentNode {
+public class CurrentNode {
 }
