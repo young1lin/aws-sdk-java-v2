@@ -28,7 +28,7 @@ public class SubExpression {
         return leftExpression;
     }
 
-    public SubExpressionRight rightSide() {
+    public SubExpressionRight rightSubExpression() {
         return rightSide;
     }
 }

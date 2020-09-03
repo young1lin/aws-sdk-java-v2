@@ -32,7 +32,7 @@ public class MultiSelectList {
         this.expressions = new ArrayList<>(expressions);
     }
 
-    List<Expression> expressions() {
+    public List<Expression> expressions() {
         return Collections.unmodifiableList(expressions);
     }
 }

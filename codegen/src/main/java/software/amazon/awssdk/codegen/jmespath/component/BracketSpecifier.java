@@ -22,20 +22,20 @@ public class BracketSpecifier {
     private BracketSpecifierWithoutContents bracketSpecifierWithoutContents;
     private BracketSpecifierWithQuestionMark bracketSpecifierWithQuestionMark;
 
-    public static BracketSpecifier bracketSpecifierWithContents(BracketSpecifierWithContents bracketSpecifierWithContents) {
+    public static BracketSpecifier withContents(BracketSpecifierWithContents bracketSpecifierWithContents) {
         Validate.notNull(bracketSpecifierWithContents, "bracketSpecifierWithContents");
         BracketSpecifier result = new BracketSpecifier();
         result.bracketSpecifierWithContents = bracketSpecifierWithContents;
         return result;
     }
 
-    public static BracketSpecifier bracketSpecifierWithoutContents() {
+    public static BracketSpecifier withoutContents() {
         BracketSpecifier result = new BracketSpecifier();
         result.bracketSpecifierWithoutContents = new BracketSpecifierWithoutContents();
         return result;
     }
 
-    public static BracketSpecifier bracketSpecifierWithQuestionMark(BracketSpecifierWithQuestionMark bracketSpecifierWithQuestionMark) {
+    public static BracketSpecifier withQuestionMark(BracketSpecifierWithQuestionMark bracketSpecifierWithQuestionMark) {
         Validate.notNull(bracketSpecifierWithQuestionMark, "bracketSpecifierWithQuestionMark");
         BracketSpecifier result = new BracketSpecifier();
         result.bracketSpecifierWithQuestionMark = bracketSpecifierWithQuestionMark;
