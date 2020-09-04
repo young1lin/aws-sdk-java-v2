@@ -15,55 +15,42 @@
 
 package software.amazon.awssdk.codegen.jmespath.parser.util;
 
-import java.util.Arrays;
-import java.util.List;
-import software.amazon.awssdk.codegen.jmespath.parser.ParseError;
+import java.util.function.Function;
 import software.amazon.awssdk.codegen.jmespath.parser.ParseResult;
 import software.amazon.awssdk.codegen.jmespath.parser.Parser;
 
 public final class CompositeParser<T> implements Parser<T> {
-    private final String expectedType;
-    private final List<Parser<T>> parsers;
+    private final Parser<T> parser;
 
-    @SafeVarargs
-    public CompositeParser(String expectedType, Parser<T>... parsers) {
-        this.expectedType = expectedType;
-        this.parsers = Arrays.asList(parsers);
+    private CompositeParser(Parser<T> parser) {
+        this.parser = parser;
+    }
+
+    public static <T> CompositeParser<T> firstTry(Parser<T> parser) {
+        return new CompositeParser<>(parser);
+    }
+
+    public static <T, U> CompositeParser<U> firstTry(Parser<T> parser, Function<T, U> resultConverter) {
+        return firstTry((start, end) -> parser.parse(start, end).mapResult(resultConverter));
+    }
+
+    public CompositeParser<T> thenTry(Parser<T> nextParser) {
+        return new CompositeParser<>((start, end) -> {
+            ParseResult<T> parse = parser.parse(start, end);
+            if (parse.hasError()) {
+                return nextParser.parse(start, end);
+            }
+
+            return parse;
+        });
+    }
+
+    public <S> CompositeParser<T> thenTry(Parser<S> nextParser, Function<S, T> resultConverter) {
+        return thenTry((start, end) -> nextParser.parse(start, end).mapResult(resultConverter));
     }
 
     @Override
     public ParseResult<T> parse(int startPosition, int endPosition) {
-
-        StringBuilder indentation = new StringBuilder();
-        StringBuilder errorMessage = new StringBuilder();
-        for (Parser<T> parseCall : parsers) {
-            ParseResult<T> parseResult = parseCall.parse(startPosition, endPosition);
-
-            if (parseResult.hasResult()) {
-                return parseResult;
-            } else {
-                ParseError error = parseResult.getError();
-
-                String parseErrorMessage = removeFormatting(error.errorMessage());
-                errorMessage.append(indentation).append("Not a ").append(error.parser()).append(" at ")
-                            .append(error.position()).append(":\n")
-                            .append(indentation).append("  ").append(parseErrorMessage).append("\n");
-            }
-        }
-
-        return ParseResult.error(expectedType, errorMessage.toString(), startPosition);
-    }
-
-    private String removeFormatting(String error) {
-        int firstNonSpace = 0;
-        while (firstNonSpace < error.length() && error.charAt(firstNonSpace) == ' ') {
-            ++firstNonSpace;
-        }
-        int lastCharExclusive = error.length();
-        if (error.endsWith("\n")) {
-            --lastCharExclusive;
-        }
-
-        return error.substring(firstNonSpace, lastCharExclusive);
+        return parser.parse(startPosition, endPosition);
     }
 }

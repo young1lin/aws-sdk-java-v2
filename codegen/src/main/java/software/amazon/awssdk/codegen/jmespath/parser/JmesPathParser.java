@@ -22,11 +22,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import software.amazon.awssdk.codegen.internal.Jackson;
 import software.amazon.awssdk.codegen.jmespath.component.AndExpression;
 import software.amazon.awssdk.codegen.jmespath.component.BracketSpecifier;
-import software.amazon.awssdk.codegen.jmespath.component.BracketSpecifierWithContents;
 import software.amazon.awssdk.codegen.jmespath.component.BracketSpecifierWithQuestionMark;
 import software.amazon.awssdk.codegen.jmespath.component.Comparator;
 import software.amazon.awssdk.codegen.jmespath.component.ComparatorExpression;
@@ -49,9 +47,11 @@ import software.amazon.awssdk.codegen.jmespath.component.StarExpression;
 import software.amazon.awssdk.codegen.jmespath.component.SubExpression;
 import software.amazon.awssdk.codegen.jmespath.component.SubExpressionRight;
 import software.amazon.awssdk.codegen.jmespath.parser.util.CompositeParser;
-import software.amazon.awssdk.codegen.jmespath.parser.util.ConvertingParser;
+import software.amazon.awssdk.utils.Logger;
 
 public class JmesPathParser {
+    private static final Logger log = Logger.loggerFor(JmesPathParser.class);
+
     private final String input;
 
     private JmesPathParser(String input) {
@@ -89,25 +89,23 @@ public class JmesPathParser {
                                      startPosition);
         }
 
-        return new CompositeParser<>("expression",
-                                     new ConvertingParser<>(this::parseSubExpression, Expression::subExpression),
-                                     new ConvertingParser<>(this::parseIndexExpression, Expression::indexExpression),
-                                     new ConvertingParser<>(this::parseComparatorExpression,
-                                                            Expression::comparatorExpression),
-                                     new ConvertingParser<>(this::parseOrExpression, Expression::orExpression),
-                                     new ConvertingParser<>(this::parseIdentifier, Expression::identifier),
-                                     new ConvertingParser<>(this::parseAndExpression, Expression::andExpression),
-                                     new ConvertingParser<>(this::parseNotExpression, Expression::notExpression),
-                                     new ConvertingParser<>(this::parseParenExpression, Expression::parenExpression),
-                                     new ConvertingParser<>(this::parseStarExpression, Expression::starExpression),
-                                     new ConvertingParser<>(this::parseMultiSelectList, Expression::multiSelectList),
-                                     new ConvertingParser<>(this::parseMultiSelectHash, Expression::multiSelectHash),
-                                     new ConvertingParser<>(this::parseLiteral, Expression::literal),
-                                     new ConvertingParser<>(this::parseFunctionExpression, Expression::functionExpression),
-                                     new ConvertingParser<>(this::parsePipeExpression, Expression::pipeExpression),
-                                     new ConvertingParser<>(this::parseRawString, Expression::rawString),
-                                     new ConvertingParser<>(this::parseCurrentNode, Expression::currentNode))
-            .parse(startPosition, endPosition);
+        return CompositeParser.firstTry(this::parseSubExpression, Expression::subExpression)
+                              .thenTry(this::parseIndexExpression, Expression::indexExpression)
+                              .thenTry(this::parseComparatorExpression, Expression::comparatorExpression)
+                              .thenTry(this::parseOrExpression, Expression::orExpression)
+                              .thenTry(this::parseIdentifier, Expression::identifier)
+                              .thenTry(this::parseAndExpression, Expression::andExpression)
+                              .thenTry(this::parseNotExpression, Expression::notExpression)
+                              .thenTry(this::parseParenExpression, Expression::parenExpression)
+                              .thenTry(this::parseStarExpression, Expression::starExpression)
+                              .thenTry(this::parseMultiSelectList, Expression::multiSelectList)
+                              .thenTry(this::parseMultiSelectHash, Expression::multiSelectHash)
+                              .thenTry(this::parseLiteral, Expression::literal)
+                              .thenTry(this::parseFunctionExpression, Expression::functionExpression)
+                              .thenTry(this::parsePipeExpression, Expression::pipeExpression)
+                              .thenTry(this::parseRawString, Expression::rawString)
+                              .thenTry(this::parseCurrentNode, Expression::currentNode)
+                              .parse(startPosition, endPosition);
     }
 
     /**
@@ -129,14 +127,13 @@ public class JmesPathParser {
             }
 
             ParseResult<SubExpressionRight> rightSide =
-                new CompositeParser<>("sub-expression-right",
-                                      new ConvertingParser<>(this::parseIdentifier, SubExpressionRight::identifier),
-                                      new ConvertingParser<>(this::parseMultiSelectList, SubExpressionRight::multiSelectList),
-                                      new ConvertingParser<>(this::parseMultiSelectHash, SubExpressionRight::multiSelectHash),
-                                      new ConvertingParser<>(this::parseFunctionExpression,
-                                                             SubExpressionRight::functionExpression),
-                                      new ConvertingParser<>(this::parseStarExpression, SubExpressionRight::starExpression))
-                    .parse(dotPosition + 1, endPosition);
+                CompositeParser.firstTry(this::parseIdentifier, SubExpressionRight::identifier)
+                               .thenTry(this::parseMultiSelectList, SubExpressionRight::multiSelectList)
+                               .thenTry(this::parseMultiSelectHash, SubExpressionRight::multiSelectHash)
+                               .thenTry(this::parseFunctionExpression, SubExpressionRight::functionExpression)
+                               .thenTry(this::parseStarExpression, SubExpressionRight::starExpression)
+                               .parse(dotPosition + 1, endPosition);
+
             if (rightSide.hasError()) {
                 continue;
             }
@@ -230,11 +227,9 @@ public class JmesPathParser {
         startPosition = trimLeftWhitespace(startPosition, endPosition);
         endPosition = trimRightWhitespace(startPosition, endPosition);
 
-        return new CompositeParser<>("bracket-specifier",
-                                     new ConvertingParser<>(this::parseIndexExpressionWithLhsExpression, Function.identity()),
-                                     new ConvertingParser<>(this::parseBracketSpecifier, b ->
-                                         IndexExpression.indexExpression(null, b)))
-            .parse(startPosition, endPosition);
+        return CompositeParser.firstTry(this::parseIndexExpressionWithLhsExpression)
+                              .thenTry(this::parseBracketSpecifier, b -> IndexExpression.indexExpression(null, b))
+                              .parse(startPosition, endPosition);
     }
 
     /**
@@ -406,14 +401,10 @@ public class JmesPathParser {
         }
 
         // "[" (number / "*" / slice-expression) "]"
-        return new CompositeParser<>("bracket-specifier-content",
-                                     new ConvertingParser<>(this::parseNumber, n ->
-                                         BracketSpecifier.withContents(BracketSpecifierWithContents.number(n))),
-                                     new ConvertingParser<>(this::parseStarExpression, s ->
-                                         BracketSpecifier.withContents(BracketSpecifierWithContents.starExpression(s))),
-                                     new ConvertingParser<>(this::parseSliceExpression, s ->
-                                         BracketSpecifier.withContents(BracketSpecifierWithContents.sliceExpression(s))))
-            .parse(startPosition + 1, endPosition - 1);
+        return CompositeParser.firstTry(this::parseNumber, BracketSpecifier::withNumberContents)
+                              .thenTry(this::parseStarExpression, BracketSpecifier::withStarExpressionContents)
+                              .thenTry(this::parseSliceExpression, BracketSpecifier::withSliceExpressionContents)
+                              .parse(startPosition + 1, endPosition - 1);
     }
 
     /**
@@ -543,9 +534,10 @@ public class JmesPathParser {
                                      startPosition);
         }
 
-        return new CompositeParser<>("no-args", this::parseNoArgs, this::parseOneOrMoreArgs)
-            .parse(paramIndex, endPosition)
-            .mapResult(args -> new FunctionExpression(functionNameParse.getResult(), args));
+        return CompositeParser.firstTry(this::parseNoArgs)
+                              .thenTry(this::parseOneOrMoreArgs)
+                              .parse(paramIndex, endPosition)
+                              .mapResult(args -> new FunctionExpression(functionNameParse.getResult(), args));
     }
 
     /**
@@ -583,10 +575,9 @@ public class JmesPathParser {
      * function-arg        = expression / expression-type
      */
     private ParseResult<FunctionArg> parseFunctionArg(int startPosition, int endPosition) {
-        return new CompositeParser<>("function-arg",
-                                     new ConvertingParser<>(this::parseExpression, FunctionArg::expression),
-                                     new ConvertingParser<>(this::parseExpressionType, FunctionArg::expressionType))
-            .parse(startPosition, endPosition);
+        return CompositeParser.firstTry(this::parseExpression, FunctionArg::expression)
+                              .thenTry(this::parseExpressionType, FunctionArg::expressionType)
+                              .parse(startPosition, endPosition);
     }
 
     /**
@@ -823,10 +814,9 @@ public class JmesPathParser {
      * identifier        = unquoted-string / quoted-string
      */
     private ParseResult<String> parseIdentifier(int startPosition, int endPosition) {
-        return new CompositeParser<>("identifier",
-                                     this::parseUnquotedString,
-                                     this::parseQuotedString)
-            .parse(startPosition, endPosition);
+        return CompositeParser.firstTry(this::parseUnquotedString)
+                              .thenTry(this::parseQuotedString)
+                              .parse(startPosition, endPosition);
     }
 
     /**
@@ -883,9 +873,6 @@ public class JmesPathParser {
             return ParseResult.error("quoted-string", "Invalid quoted-string", startPosition);
         }
 
-        Parser<String> unescapedOrEscapedCharParser = new CompositeParser<>("quoted-string",
-                                                                            this::parseUnescapedChar,
-                                                                            this::parseEscapedChar);
         StringBuilder result = new StringBuilder();
         for (int i = stringStart; i < stringEnd; i++) {
             ParseResult<String> unescapedChar = parseUnescapedChar(i, i + 1);

@@ -29,6 +29,18 @@ public class BracketSpecifier {
         return result;
     }
 
+    public static BracketSpecifier withNumberContents(int numberContents) {
+        return withContents(BracketSpecifierWithContents.number(numberContents));
+    }
+
+    public static BracketSpecifier withSliceExpressionContents(SliceExpression sliceExpression) {
+        return withContents(BracketSpecifierWithContents.sliceExpression(sliceExpression));
+    }
+
+    public static BracketSpecifier withStarExpressionContents(StarExpression starExpression) {
+        return withContents(BracketSpecifierWithContents.starExpression(starExpression));
+    }
+
     public static BracketSpecifier withoutContents() {
         BracketSpecifier result = new BracketSpecifier();
         result.bracketSpecifierWithoutContents = new BracketSpecifierWithoutContents();
