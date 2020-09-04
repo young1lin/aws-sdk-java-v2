@@ -1,3 +1,196 @@
+# __2.14.12__ __2020-09-04__
+## __AWS SDK for Java v2__
+  - ### Features
+    - Updated service endpoint metadata.
+
+## __AWS X-Ray__
+  - ### Features
+    - Enhancing CreateGroup, UpdateGroup, GetGroup and GetGroups APIs to support configuring X-Ray Insights
+
+## __Amazon Simple Systems Manager (SSM)__
+  - ### Features
+    - Documentation-only updates for AWS Systems Manager
+
+## __Amazon WorkSpaces__
+  - ### Features
+    - Adding support for Microsoft Office 2016 and Microsoft Office 2019 in BYOL Images
+
+# __2.14.11__ __2020-09-03__
+## __AWS Elemental MediaPackage__
+  - ### Features
+    - Enables inserting a UTCTiming XML tag in the output manifest of a DASH endpoint which a media player will use to help with time synchronization.
+
+## __AWS Step Functions__
+  - ### Features
+    - This release of the AWS Step Functions SDK introduces support for payloads up to 256KB for Standard and Express workflows
+
+## __AWSKendraFrontendService__
+  - ### Features
+    - Amazon Kendra now returns confidence scores for both 'answer' and 'question and answer' query responses.
+
+## __Amazon GuardDuty__
+  - ### Features
+    - GuardDuty findings triggered by failed events now include the error code name within the AwsApiCallAction section.
+
+# __2.14.10__ __2020-09-02__
+## __AWS SDK for Java v2__
+  - ### Features
+    - Updated service endpoint metadata.
+
+## __Amazon Elastic Compute Cloud__
+  - ### Features
+    - This release adds a new transit gateway attachment state and resource type.
+
+## __Amazon Macie 2__
+  - ### Features
+    - This release of the Amazon Macie API introduces additional statistics for the size and count of Amazon S3 objects that Macie can analyze as part of a classification job.
+
+## __DynamoDB Enhanced Client__
+  - ### Features
+    - Support for mapping to and from immutable Java objects using ImmutableTableSchema and StaticImmutableTableSchema.
+
+# __2.14.9__ __2020-09-01__
+## __AWS SDK for Java v2__
+  - ### Bugfixes
+    - Code Generator test failures on Windows systems were fixed.
+
+## __AWS SecurityHub__
+  - ### Features
+    - Added a PatchSummary object for security findings. The PatchSummary object provides details about the patch compliance status of an instance.
+
+## __Amazon CodeGuru Reviewer__
+  - ### Features
+    - Add support for repository analysis based code reviews
+
+# __2.14.8__ __2020-08-31__
+## __AWS Backup__
+  - ### Features
+    - Documentation updates for Cryo
+
+## __AWS SDK for Java v2__
+  - ### Features
+    - Updated service endpoint metadata.
+
+## __Amazon CloudFront__
+  - ### Features
+    - CloudFront now supports real-time logging for CloudFront distributions. CloudFront real-time logs are more detailed, configurable, and are available in real time.
+
+## __Amazon Elastic Compute Cloud__
+  - ### Features
+    - Amazon EC2 and Spot Fleet now support modification of launch template configs for a running fleet enabling instance type, instance weight, AZ, and AMI updates without losing the current fleet ID.
+
+## __Amazon Simple Queue Service__
+  - ### Features
+    - Documentation updates for SQS.
+
+# __2.14.7__ __2020-08-28__
+## __AWS Cost and Usage Report Service__
+  - ### Features
+    - This release add MONTHLY as the new supported TimeUnit for ReportDefinition.
+
+## __AWS SDK for Java v2__
+  - ### Features
+    - Updated service endpoint metadata.
+
+## __Amazon CloudFront__
+  - ### Features
+    - You can now manage CloudFront's additional, real-time metrics with the CloudFront API.
+
+## __Amazon Elastic MapReduce__
+  - ### Features
+    - Amazon EMR adds support for ICMP, port -1, in Block Public Access Exceptions and API access for EMR Notebooks execution. You can now non-interactively execute EMR Notebooks and pass input parameters.
+
+## __Amazon Route 53__
+  - ### Features
+    - Documentation updates for Route 53
+
+# __2.14.6__ __2020-08-27__
+## __AWS Elemental MediaConvert__
+  - ### Features
+    - AWS Elemental MediaConvert SDK has added support for WebM DASH outputs as well as H.264 4:2:2 10-bit output in MOV and MP4.
+
+## __AWS SDK for Java v2__
+  - ### Features
+    - Updated service endpoint metadata.
+
+## __Amazon Elastic Compute Cloud__
+  - ### Features
+    - Introduces support to initiate Internet Key Exchange (IKE) negotiations for VPN connections from AWS. A user can now send the initial IKE message to their Customer Gateway (CGW) from VPN endpoints.
+
+## __Amazon GameLift__
+  - ### Features
+    - GameLift FleetIQ as a standalone feature is now generally available. FleetIQ makes low-cost Spot instances viable for game hosting. Use GameLift FleetIQ with your EC2 Auto Scaling groups.
+
+## __Amazon Redshift__
+  - ### Features
+    - Documentation updates for Amazon Redshift.
+
+# __2.14.5__ __2020-08-26__
+## __AWS SDK for Java v2__
+  - ### Features
+    - Updated service endpoint metadata.
+
+## __Amazon Appflow__
+  - ### Features
+    - Amazon AppFlow is a fully managed integration service that securely transfers data between AWS services and SaaS applications. This update releases the first version of Amazon AppFlow APIs and SDK.
+
+## __Amazon Route 53 Resolver__
+  - ### Features
+    - Route 53 Resolver adds support for resolver query logs
+
+# __2.14.4__ __2020-08-24__
+## __AWS Database Migration Service__
+  - ### Features
+    - Added new endpoint settings to include columns with Null and Empty value when using Kinesis and Kafka as target. Added a new endpoint setting to set maximum message size when using Kafka as target.
+
+## __AWS IoT SiteWise__
+  - ### Features
+    - Add traversalDirection to ListAssociatedAssetsRequest and add portal status to ListPortalsResponse
+
+## __AWS SDK for Java v2__
+  - ### Features
+    - Updated service endpoint metadata.
+
+  - ### Bugfixes
+    - For JSON protocols, when unmarshalling a response, if a member is declared to be located in the URI, the member is treated as being located in the payload instead.
+
+## __AWS X-Ray__
+  - ### Features
+    - AWS X-Ray now supports tagging on sampling rules and groups.
+
+## __Amazon CloudWatch Logs__
+  - ### Features
+    - Documentation updates for CloudWatch Logs
+
+## __Amazon Elastic Compute Cloud__
+  - ### Features
+    - This release enables customers to use VPC prefix lists in their transit gateway route tables, and it adds support for Provisioned IOPS SSD (io2) EBS volumes.
+
+## __Amazon Simple Systems Manager (SSM)__
+  - ### Features
+    - Add string length constraints to OpsDataAttributeName and OpsFilterValue.
+
+## __Managed Streaming for Kafka__
+  - ### Features
+    - Add UpdateConfiguration and DeleteConfiguration operations.
+
+# __2.14.3__ __2020-08-20__
+## __Amazon Chime__
+  - ### Features
+    - Documentation updates for chime
+
+## __Amazon DynamoDB Streaming Client__
+  - ### Bugfixes
+    - Fix for CRC not working correctly for compressed responses
+
+## __Amazon FSx__
+  - ### Features
+    - Documentation updates for Amazon FSx
+
+## __AmazonApiGatewayV2__
+  - ### Features
+    - Customers can now create Amazon API Gateway HTTP APIs that route requests to AWS AppConfig, Amazon EventBridge, Amazon Kinesis Data Streams, Amazon SQS, and AWS Step Functions.
+
 # __2.14.2__ __2020-08-19__
 ## __AWS Lake Formation__
   - ### Features
