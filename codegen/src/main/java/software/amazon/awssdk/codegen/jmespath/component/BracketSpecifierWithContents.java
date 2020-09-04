@@ -60,7 +60,7 @@ public class BracketSpecifierWithContents {
         return sliceExpression != null;
     }
 
-    public int asInteger() {
+    public int asNumber() {
         Validate.validState(isInteger(), "Not a Integer");
         return number;
     }

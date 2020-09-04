@@ -644,29 +644,47 @@ public class JmesPathParser {
         }
 
         /**
-         * raw-string-char   = (%x20-26 / %x28-5B / %x5D-10FFFF) / preserved-escape /
-         * raw-string-escape
+         * raw-string-char   = (%x20-26 / %x28-5B / %x5D-10FFFF) / preserved-escape / raw-string-escape
          */
         private ParseResult<String> parseRawStringChars(int startPosition, int endPosition) {
-            return new CompositeParser<>("raw-string-char",
-                                         this::parseLegalRawStringChars,
-                                         this::parsePreservedEscape,
-                                         this::parseRawStringEscape)
-                .parse(startPosition, endPosition);
+            StringBuilder result = new StringBuilder();
+            for (int i = startPosition; i < endPosition; i++) {
+                ParseResult<String> rawStringChar = parseLegalRawStringChar(i, i + 1);
+                if (!rawStringChar.hasError()) {
+                    result.append(rawStringChar.getResult());
+                    continue;
+                }
+
+                ParseResult<String> preservedEscape = parsePreservedEscape(i, i + 2);
+                if (!preservedEscape.hasError()) {
+                    result.append(preservedEscape.getResult());
+                    ++i;
+                    continue;
+                }
+
+                ParseResult<String> rawStringEscape = parseRawStringEscape(i, i + 2);
+                if (!rawStringEscape.hasError()) {
+                    result.append(rawStringEscape.getResult());
+                    ++i;
+                    continue;
+                }
+
+                return ParseResult.error("raw-string", "Unexpected character", i);
+            }
+
+            return ParseResult.success(result.toString());
         }
 
         /**
          * %x20-26 / %x28-5B / %x5D-10FFFF
          */
-        private ParseResult<String> parseLegalRawStringChars(int startPosition, int endPosition) {
-            if (charsInRange(startPosition, endPosition) < 1) {
+        private ParseResult<String> parseLegalRawStringChar(int startPosition, int endPosition) {
+            if (charsInRange(startPosition, endPosition) != 1) {
                 return ParseResult.error("raw-string-chars", "Invalid bounds", startPosition);
             }
 
-            for (int i = startPosition; i < endPosition; i++) {
-                if (!isLegalRawStringChar(context.input().charAt(i))) {
-                    return ParseResult.error("raw-string-chars", "Invalid character in sequence", startPosition);
-                }
+            if (!isLegalRawStringChar(context.input().charAt(startPosition))) {
+                return ParseResult.error("raw-string-chars", "Invalid character in sequence", startPosition);
             }
 
             return ParseResult.success(context.input().substring(startPosition, endPosition));
@@ -675,30 +693,38 @@ public class JmesPathParser {
         private boolean isLegalRawStringChar(char c) {
             return (c >= 0x20 && c <= 0x26) ||
                    (c >= 0x28 && c <= 0x5B) ||
-                   (c >= 0x5B);
+                   (c >= 0x5D);
         }
 
         /**
          * preserved-escape  = escape (%x20-26 / %28-5B / %x5D-10FFFF)
          */
         private ParseResult<String> parsePreservedEscape(int startPosition, int endPosition) {
-            if (charsInRange(startPosition, endPosition) < 2) {
-                return ParseResult.error("preserved-escape", "Invalid bounds", startPosition);
+            if (endPosition > context.input().length()) {
+                ParseResult.error("preserved-escape", "Invalid end position", startPosition);
+            }
+
+            if (charsInRange(startPosition, endPosition) != 2) {
+                return ParseResult.error("preserved-escape", "Invalid length", startPosition);
             }
 
             if (context.input().charAt(startPosition) != '\\') {
                 return ParseResult.error("preserved-escape", "Expected \\", startPosition);
             }
 
-            return parseLegalRawStringChars(startPosition + 1, endPosition).mapResult(v -> "\\" + v);
+            return parseLegalRawStringChar(startPosition + 1, endPosition).mapResult(v -> "\\" + v);
         }
 
         /**
          * raw-string-escape = escape ("'" / escape)
          */
         private ParseResult<String> parseRawStringEscape(int startPosition, int endPosition) {
+            if (endPosition > context.input().length()) {
+                ParseResult.error("preserved-escape", "Invalid end position", startPosition);
+            }
+
             if (charsInRange(startPosition, endPosition) != 2) {
-                return ParseResult.error("raw-string-escape", "Invalid raw string escape", startPosition);
+                return ParseResult.error("raw-string-escape", "Invalid length", startPosition);
             }
 
             if (context.input().charAt(startPosition) != '\\') {
@@ -706,7 +732,7 @@ public class JmesPathParser {
             }
 
             if (context.input().charAt(startPosition + 1) != '\'' && context.input().charAt(startPosition + 1) != '\\') {
-                return ParseResult.error("raw-string-escape", "Expected \"'\"", startPosition);
+                return ParseResult.error("raw-string-escape", "Expected \"'\" or \"\\\"", startPosition);
             }
 
             return ParseResult.success(context.input().substring(startPosition, endPosition));
@@ -839,17 +865,18 @@ public class JmesPathParser {
 
         /**
          * quoted-string     = quote 1*(unescaped-char / escaped-char) quote
+         * quote = '"'
          */
         private ParseResult<String> parseQuotedString(int startPosition, int endPosition) {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
             endPosition = trimRightWhitespace(startPosition, endPosition);
 
-            if (!(context.input().charAt(startPosition) == '\'')) {
-                return ParseResult.error("quoted-string", "Expected \"'\"", startPosition);
+            if (context.input().charAt(startPosition) != '"') {
+                return ParseResult.error("quoted-string", "Expected '\"'", startPosition);
             }
 
-            if (!(context.input().charAt(endPosition - 1) == '\'')) {
-                return ParseResult.error("quoted-string", "Expected \"'\"", endPosition - 1);
+            if (context.input().charAt(endPosition - 1) != '"') {
+                return ParseResult.error("quoted-string", "Expected '\"'", endPosition - 1);
             }
 
             int stringStart = startPosition + 1;
@@ -865,11 +892,31 @@ public class JmesPathParser {
                                                                                 this::parseEscapedChar);
             StringBuilder result = new StringBuilder();
             for (int i = stringStart; i < stringEnd; i++) {
-                ParseResult<String> string = unescapedOrEscapedCharParser.parse(i, i + 1);
-                if (string.hasError()) {
-                    return string;
+                ParseResult<String> unescapedChar = parseUnescapedChar(i, i + 1);
+                if (!unescapedChar.hasError()) {
+                    result.append(unescapedChar.getResult());
+                    continue;
                 }
-                result.append(string.getResult());
+
+                ParseResult<String> escapedChar = parseEscapedChar(i, i + 2);
+                if (!escapedChar.hasError()) {
+                    result.append(escapedChar.getResult());
+                    ++i;
+                    continue;
+                }
+
+                ParseResult<String> escapedUnicodeSequence = parseEscapedUnicodeSequence(i, i + 6);
+                if (!escapedUnicodeSequence.hasError()) {
+                    result.append(escapedUnicodeSequence.getResult());
+                    i += 5;
+                    continue;
+                }
+
+                if (context.input().charAt(i) == '\\') {
+                    return ParseResult.error("quoted-string", "Unsupported escape sequence", i);
+                } else {
+                    return ParseResult.error("quoted-string", "Unexpected character", i);
+                }
             }
 
             return ParseResult.success(result.toString());
@@ -904,11 +951,15 @@ public class JmesPathParser {
          * %x6E /          ; n    line feed       U+000A
          * %x72 /          ; r    carriage return U+000D
          * %x74 /          ; t    tab             U+0009
-         * %x75 4HEXDIG )  ; uXXXX                U+XXXX
+         * %x75 4HEXDIG )  ; uXXXX                U+XXXX (this is handled as part of parseEscapedUnicodeSequence)
          */
         private ParseResult<String> parseEscapedChar(int startPosition, int endPosition) {
-            if (charsInRange(startPosition, endPosition) >= 2) {
-                return ParseResult.error("escaped-char", "Invalid escape-char sequence", startPosition);
+            if (endPosition > context.input().length()) {
+                return ParseResult.error("escaped-char", "Invalid end position", startPosition);
+            }
+
+            if (charsInRange(startPosition, endPosition) != 2) {
+                return ParseResult.error("escaped-char", "Invalid length", startPosition);
             }
 
             if (context.input().charAt(startPosition) != '\\') {
@@ -917,42 +968,45 @@ public class JmesPathParser {
 
             char escapedChar = context.input().charAt(startPosition + 1);
             switch (escapedChar) {
-                case '"':
-                    return ParseResult.success("\\\"");
-                case '\\':
-                    return ParseResult.success("\\\\");
-                case '/':
-                    return ParseResult.success("/");
-                case 'b':
-                    return ParseResult.success("\\b");
-                case 'f':
-                    return ParseResult.success("\\f");
-                case 'n':
-                    return ParseResult.success("\\n");
-                case 'r':
-                    return ParseResult.success("\\r");
-                case 't':
-                    return ParseResult.success("\\t");
-                default: // continue
+                case '"': return ParseResult.success("\"");
+                case '\\': return ParseResult.success("\\");
+                case '/': return ParseResult.success("/");
+                case 'b': return ParseResult.success("\b");
+                case 'f': return ParseResult.success("\f");
+                case 'n': return ParseResult.success("\n");
+                case 'r': return ParseResult.success("\r");
+                case 't': return ParseResult.success("\t");
+                default: return ParseResult.error("escaped-char", "Invalid escape sequence", startPosition);
+            }
+        }
+
+        private ParseResult<String> parseEscapedUnicodeSequence(int startPosition, int endPosition) {
+            if (endPosition > context.input().length()) {
+                return ParseResult.error("escaped-unicode-sequence", "Invalid end position", startPosition);
             }
 
+            if (charsInRange(startPosition, endPosition) != 6) {
+                return ParseResult.error("escaped-unicode-sequence", "Invalid length", startPosition);
+            }
+
+            if (context.input().charAt(startPosition) != '\\') {
+                return ParseResult.error("escaped-unicode-sequence", "Expected '\\'", startPosition);
+            }
+
+            char escapedChar = context.input().charAt(startPosition + 1);
             if (escapedChar != 'u') {
-                return ParseResult.error("escaped-char", "Invalid escape sequence", startPosition);
+                return ParseResult.error("escaped-unicode-sequence", "Invalid escape sequence", startPosition);
             }
 
-            int unicodeEndIndex = startPosition + 1 + 4;
-            if (unicodeEndIndex > endPosition) {
-                return ParseResult.error("escaped-char", "Invalid unicode sequence", startPosition);
-            }
-
-            String unicodePattern = context.input().substring(startPosition + 1, unicodeEndIndex);
+            String unicodePattern = context.input().substring(startPosition + 2, startPosition + 2 + 4);
+            char unicodeChar;
             try {
-                Long.parseLong(unicodePattern, 16);
+                unicodeChar = (char) Integer.parseInt(unicodePattern, 16);
             } catch (NumberFormatException e) {
-                return ParseResult.error("escaped-char", "Invalid unicode hex sequence", startPosition);
+                return ParseResult.error("escaped-unicode-sequence", "Invalid unicode hex sequence", startPosition);
             }
 
-            return ParseResult.success(context.input().substring(startPosition, endPosition));
+            return ParseResult.success(String.valueOf(unicodeChar));
         }
 
         /**

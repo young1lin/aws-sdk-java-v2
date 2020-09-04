@@ -18,6 +18,7 @@ package software.amazon.awssdk.codegen.jmespath;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
+import software.amazon.awssdk.codegen.jmespath.component.Comparator;
 import software.amazon.awssdk.codegen.jmespath.component.Expression;
 import software.amazon.awssdk.codegen.jmespath.parser.JmesPathParser;
 
@@ -112,7 +113,7 @@ public class JmesPathParserTest {
         Expression expression = JmesPathParser.parse("[10]");
         assertThat(expression.isIndexExpression()).isTrue();
         assertThat(expression.asIndexExpression().expression()).isNotPresent();
-        assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().asInteger()).isEqualTo(10);
+        assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().asNumber()).isEqualTo(10);
     }
 
     @Test
@@ -142,7 +143,7 @@ public class JmesPathParserTest {
     public void testIndexedExpressionWithLeftExpressionWithContents() {
         Expression expression = JmesPathParser.parse("foo[10]");
         assertThat(expression.asIndexExpression().expression()).hasValueSatisfying(e -> assertThat(e.asIdentifier()).isEqualTo("foo"));
-        assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().asInteger()).isEqualTo(10);
+        assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().asNumber()).isEqualTo(10);
     }
 
     @Test
@@ -199,6 +200,54 @@ public class JmesPathParserTest {
         assertThat(expression.asMultiSelectHash().keyValueExpressions().get(1).value().asIdentifier()).isEqualTo("barV");
         assertThat(expression.asMultiSelectHash().keyValueExpressions().get(2).key()).isEqualTo("bazK");
         assertThat(expression.asMultiSelectHash().keyValueExpressions().get(2).value().asIdentifier()).isEqualTo("bazV");
+    }
+
+    @Test
+    public void testComparatorExpressionLT() {
+        Expression expression = JmesPathParser.parse("foo < bar");
+        assertThat(expression.asComparatorExpression().leftExpression().asIdentifier()).isEqualTo("foo");
+        assertThat(expression.asComparatorExpression().comparator()).isEqualTo(Comparator.LESS_THAN);
+        assertThat(expression.asComparatorExpression().rightExpression().asIdentifier()).isEqualTo("bar");
+    }
+
+    @Test
+    public void testComparatorExpressionGT() {
+        Expression expression = JmesPathParser.parse("foo > bar");
+        assertThat(expression.asComparatorExpression().leftExpression().asIdentifier()).isEqualTo("foo");
+        assertThat(expression.asComparatorExpression().comparator()).isEqualTo(Comparator.GREATER_THAN);
+        assertThat(expression.asComparatorExpression().rightExpression().asIdentifier()).isEqualTo("bar");
+    }
+
+    @Test
+    public void testComparatorExpressionLTE() {
+        Expression expression = JmesPathParser.parse("foo <= bar");
+        assertThat(expression.asComparatorExpression().leftExpression().asIdentifier()).isEqualTo("foo");
+        assertThat(expression.asComparatorExpression().comparator()).isEqualTo(Comparator.LESS_THAN_OR_EQUAL);
+        assertThat(expression.asComparatorExpression().rightExpression().asIdentifier()).isEqualTo("bar");
+    }
+
+    @Test
+    public void testComparatorExpressionGTE() {
+        Expression expression = JmesPathParser.parse("foo >= bar");
+        assertThat(expression.asComparatorExpression().leftExpression().asIdentifier()).isEqualTo("foo");
+        assertThat(expression.asComparatorExpression().comparator()).isEqualTo(Comparator.GREATER_THAN_OR_EQUAL);
+        assertThat(expression.asComparatorExpression().rightExpression().asIdentifier()).isEqualTo("bar");
+    }
+
+    @Test
+    public void testComparatorExpressionEQ() {
+        Expression expression = JmesPathParser.parse("foo == bar");
+        assertThat(expression.asComparatorExpression().leftExpression().asIdentifier()).isEqualTo("foo");
+        assertThat(expression.asComparatorExpression().comparator()).isEqualTo(Comparator.EQUAL);
+        assertThat(expression.asComparatorExpression().rightExpression().asIdentifier()).isEqualTo("bar");
+    }
+
+    @Test
+    public void testComparatorExpressionNEQ() {
+        Expression expression = JmesPathParser.parse("foo != bar");
+        assertThat(expression.asComparatorExpression().leftExpression().asIdentifier()).isEqualTo("foo");
+        assertThat(expression.asComparatorExpression().comparator()).isEqualTo(Comparator.NOT_EQUAL);
+        assertThat(expression.asComparatorExpression().rightExpression().asIdentifier()).isEqualTo("bar");
     }
 
     @Test
@@ -289,5 +338,140 @@ public class JmesPathParserTest {
         assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().asSliceExpression().start()).hasValue(10);
         assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().asSliceExpression().stop()).hasValue(20);
         assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().asSliceExpression().step()).hasValue(30);
+    }
+
+    @Test
+    public void testSliceExpressionWithStepNumber3() {
+        Expression expression = JmesPathParser.parse("[::30]");
+        assertThat(expression.isIndexExpression()).isTrue();
+        assertThat(expression.asIndexExpression().expression()).isNotPresent();
+        assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().asSliceExpression().start()).isNotPresent();
+        assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().asSliceExpression().stop()).isNotPresent();
+        assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().asSliceExpression().step()).hasValue(30);
+    }
+
+    @Test
+    public void testFunction0Args() {
+        Expression expression = JmesPathParser.parse("length()");
+        assertThat(expression.asFunctionExpression().function()).isEqualTo("length");
+        assertThat(expression.asFunctionExpression().functionArgs()).isEmpty();
+    }
+
+    @Test
+    public void testFunction1ExpressionArg() {
+        Expression expression = JmesPathParser.parse("length(foo)");
+        assertThat(expression.asFunctionExpression().function()).isEqualTo("length");
+        assertThat(expression.asFunctionExpression().functionArgs()).hasSize(1);
+        assertThat(expression.asFunctionExpression().functionArgs().get(0).asExpression().asIdentifier()).isEqualTo("foo");
+    }
+
+    @Test
+    public void testFunction2ExpressionArg() {
+        Expression expression = JmesPathParser.parse("length(foo, bar)");
+        assertThat(expression.asFunctionExpression().function()).isEqualTo("length");
+        assertThat(expression.asFunctionExpression().functionArgs()).hasSize(2);
+        assertThat(expression.asFunctionExpression().functionArgs().get(0).asExpression().asIdentifier()).isEqualTo("foo");
+        assertThat(expression.asFunctionExpression().functionArgs().get(1).asExpression().asIdentifier()).isEqualTo("bar");
+    }
+
+    @Test
+    public void testFunction3ExpressionArg() {
+        Expression expression = JmesPathParser.parse("length(foo, bar, baz)");
+        assertThat(expression.asFunctionExpression().function()).isEqualTo("length");
+        assertThat(expression.asFunctionExpression().functionArgs()).hasSize(3);
+        assertThat(expression.asFunctionExpression().functionArgs().get(0).asExpression().asIdentifier()).isEqualTo("foo");
+        assertThat(expression.asFunctionExpression().functionArgs().get(1).asExpression().asIdentifier()).isEqualTo("bar");
+        assertThat(expression.asFunctionExpression().functionArgs().get(2).asExpression().asIdentifier()).isEqualTo("baz");
+    }
+
+    @Test
+    public void testFunction1ExpressionTypeArg() {
+        Expression expression = JmesPathParser.parse("length(&foo)");
+        assertThat(expression.asFunctionExpression().function()).isEqualTo("length");
+        assertThat(expression.asFunctionExpression().functionArgs()).hasSize(1);
+        assertThat(expression.asFunctionExpression().functionArgs().get(0).asExpressionType().expression().asIdentifier()).isEqualTo("foo");
+    }
+
+    @Test
+    public void testFunction2ExpressionTypeArg() {
+        Expression expression = JmesPathParser.parse("length(&foo, &bar)");
+        assertThat(expression.asFunctionExpression().function()).isEqualTo("length");
+        assertThat(expression.asFunctionExpression().functionArgs()).hasSize(2);
+        assertThat(expression.asFunctionExpression().functionArgs().get(0).asExpressionType().expression().asIdentifier()).isEqualTo("foo");
+        assertThat(expression.asFunctionExpression().functionArgs().get(1).asExpressionType().expression().asIdentifier()).isEqualTo("bar");
+    }
+
+    @Test
+    public void testFunction3ExpressionTypeArg() {
+        Expression expression = JmesPathParser.parse("length(&foo, &bar, &baz)");
+        assertThat(expression.asFunctionExpression().function()).isEqualTo("length");
+        assertThat(expression.asFunctionExpression().functionArgs()).hasSize(3);
+        assertThat(expression.asFunctionExpression().functionArgs().get(0).asExpressionType().expression().asIdentifier()).isEqualTo("foo");
+        assertThat(expression.asFunctionExpression().functionArgs().get(1).asExpressionType().expression().asIdentifier()).isEqualTo("bar");
+        assertThat(expression.asFunctionExpression().functionArgs().get(2).asExpressionType().expression().asIdentifier()).isEqualTo("baz");
+    }
+
+    @Test
+    public void testFunction3MixedExpressionTypeArg() {
+        Expression expression = JmesPathParser.parse("length(foo, &bar, baz)");
+        assertThat(expression.asFunctionExpression().function()).isEqualTo("length");
+        assertThat(expression.asFunctionExpression().functionArgs()).hasSize(3);
+        assertThat(expression.asFunctionExpression().functionArgs().get(0).asExpression().asIdentifier()).isEqualTo("foo");
+        assertThat(expression.asFunctionExpression().functionArgs().get(1).asExpressionType().expression().asIdentifier()).isEqualTo("bar");
+        assertThat(expression.asFunctionExpression().functionArgs().get(2).asExpression().asIdentifier()).isEqualTo("baz");
+    }
+
+    @Test
+    public void testCurrentNode() {
+        Expression expression = JmesPathParser.parse("@");
+        assertThat(expression.isCurrentNode()).isTrue();
+    }
+
+    @Test
+    public void testEmptyIdentifierUnquoted() {
+        Expression expression = JmesPathParser.parse("foo_bar");
+        assertThat(expression.asIdentifier()).isEqualTo("foo_bar");
+    }
+
+    @Test
+    public void testIdentifierUnquoted() {
+        Expression expression = JmesPathParser.parse("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
+        assertThat(expression.asIdentifier()).isEqualTo("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_");
+    }
+
+    @Test
+    public void testIdentifierQuoted() {
+        Expression expression = JmesPathParser.parse("\"foo bar\"");
+        assertThat(expression.asIdentifier()).isEqualTo("foo bar");
+    }
+
+    @Test
+    public void testIdentifierQuotedWithEscapes() {
+        Expression expression = JmesPathParser.parse("\"foo \\\" \\\\ \\/ \\b \\f \\n \\r \\t \\u0000 \\uffff bar\"");
+        assertThat(expression.asIdentifier()).isEqualTo("foo \" \\ / \b \f \n \r \t \u0000 \uffff bar");
+    }
+
+    @Test
+    public void testRawStringEmpty() {
+        Expression expression = JmesPathParser.parse("''");
+        assertThat(expression.asRawString()).isEmpty();
+    }
+
+    @Test
+    public void testRawStringWithValue() {
+        Expression expression = JmesPathParser.parse("'foo bar'");
+        assertThat(expression.asRawString()).isEqualTo("foo bar");
+    }
+
+    @Test
+    public void testRawStringWithEscapedSequences() {
+        Expression expression = JmesPathParser.parse("'foo \\' \\\\ \\/ \\b \\f \\n \\r \\t \\u0000 \\uffff bar'");
+        assertThat(expression.asRawString()).isEqualTo("foo \\' \\\\ \\/ \\b \\f \\n \\r \\t \\u0000 \\uffff bar");
+    }
+
+    @Test
+    public void testNegativeNumber() {
+        Expression expression = JmesPathParser.parse("[-10]");
+        assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().asNumber()).isEqualTo(-10);
     }
 }
