@@ -32,7 +32,7 @@ public class MultiSelectHash {
         this.expressions = new ArrayList<>(expressions);
     }
 
-    List<KeyValueExpression> keyValueExpressions() {
+    public List<KeyValueExpression> keyValueExpressions() {
         return Collections.unmodifiableList(expressions);
     }
 }

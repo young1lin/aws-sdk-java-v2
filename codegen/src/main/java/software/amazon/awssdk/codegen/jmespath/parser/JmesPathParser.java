@@ -13,13 +13,14 @@
  * permissions and limitations under the License.
  */
 
-package software.amazon.awssdk.codegen.jmespath;
+package software.amazon.awssdk.codegen.jmespath.parser;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import software.amazon.awssdk.codegen.internal.Jackson;
@@ -47,7 +48,8 @@ import software.amazon.awssdk.codegen.jmespath.component.SliceExpression;
 import software.amazon.awssdk.codegen.jmespath.component.StarExpression;
 import software.amazon.awssdk.codegen.jmespath.component.SubExpression;
 import software.amazon.awssdk.codegen.jmespath.component.SubExpressionRight;
-import software.amazon.awssdk.utils.Validate;
+import software.amazon.awssdk.codegen.jmespath.parser.util.CompositeParser;
+import software.amazon.awssdk.codegen.jmespath.parser.util.ConvertingParser;
 
 public class JmesPathParser {
     private JmesPathParser() {
@@ -58,17 +60,17 @@ public class JmesPathParser {
     }
 
     private static final class ParsingVisitor {
-        private final String input;
+        private final ParserContext context;
 
         private ParsingVisitor(String input) {
-            this.input = input;
+            this.context = new ParserContext(input);
         }
 
         private Expression parse() {
-            ParseResult<Expression> expression = parseExpression(0, input.length());
+            ParseResult<Expression> expression = parseExpression(0, context.input().length());
             if (expression.hasError()) {
                 ParseError error = expression.getError();
-                throw new IllegalArgumentException("Failed to parse expression:\n" + error.errorMessage);
+                throw new IllegalArgumentException("Failed to parse expression:\n" + error.errorMessage());
             }
 
             return expression.getResult();
@@ -86,7 +88,7 @@ public class JmesPathParser {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
             endPosition = trimRightWhitespace(startPosition, endPosition);
 
-            if (startPosition < 0 || endPosition > input.length() + 1) {
+            if (startPosition < 0 || endPosition > context.input().length() + 1) {
                 return ParseResult.error("expression", "Illegal parse range: [" + startPosition + ", " + endPosition + "]",
                                          startPosition);
             }
@@ -114,10 +116,10 @@ public class JmesPathParser {
 
         /**
          * sub-expression    = expression "." ( identifier /
-         *                                      multi-select-list /
-         *                                      multi-select-hash /
-         *                                      function-expression /
-         *                                      "*" )
+         * multi-select-list /
+         * multi-select-hash /
+         * function-expression /
+         * "*" )
          */
         private ParseResult<SubExpression> parseSubExpression(int startPosition, int endPosition) {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
@@ -138,7 +140,7 @@ public class JmesPathParser {
                                           new ConvertingParser<>(this::parseFunctionExpression,
                                                                  SubExpressionRight::functionExpression),
                                           new ConvertingParser<>(this::parseStarExpression, SubExpressionRight::starExpression))
-                    .parse(dotPosition + 1, endPosition);
+                        .parse(dotPosition + 1, endPosition);
                 if (rightSide.hasError()) {
                     continue;
                 }
@@ -182,7 +184,7 @@ public class JmesPathParser {
                     continue;
                 }
 
-                ParseResult<Expression> rightSide = parseExpression(delimiterPosition + 1, endPosition);
+                ParseResult<Expression> rightSide = parseExpression(delimiterPosition + delimiter.length(), endPosition);
                 if (rightSide.hasError()) {
                     continue;
                 }
@@ -200,7 +202,7 @@ public class JmesPathParser {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
             endPosition = trimRightWhitespace(startPosition, endPosition);
 
-            if (input.charAt(startPosition) != '!') {
+            if (context.input().charAt(startPosition) != '!') {
                 return ParseResult.error("not-expression", "Expected '!'", startPosition);
             }
 
@@ -214,15 +216,15 @@ public class JmesPathParser {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
             endPosition = trimRightWhitespace(startPosition, endPosition);
 
-            if (input.charAt(startPosition) != '(') {
+            if (context.input().charAt(startPosition) != '(') {
                 return ParseResult.error("paren-expression", "Expected '('", startPosition);
             }
 
-            if (input.charAt(endPosition - 1) != ')') {
+            if (context.input().charAt(endPosition - 1) != ')') {
                 return ParseResult.error("paren-expression", "Expected ')'", endPosition - 1);
             }
 
-            return parseExpression(startPosition + 1, endPosition).mapResult(ParenExpression::new);
+            return parseExpression(startPosition + 1, endPosition - 1).mapResult(ParenExpression::new);
         }
 
         /**
@@ -283,7 +285,7 @@ public class JmesPathParser {
 
         /**
          * Parses "startDelimiter" ( entryParserType *( "," entryParserType ) ) "endDelimiter"
-         *
+         * <p>
          * Used by {@link #parseMultiSelectHash}, {@link #parseMultiSelectList}.
          */
         private <T> ParseResult<List<T>> parseMultiSelect(int startPosition, int endPosition,
@@ -292,11 +294,11 @@ public class JmesPathParser {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
             endPosition = trimRightWhitespace(startPosition, endPosition);
 
-            if (input.charAt(startPosition) != startDelimiter) {
+            if (context.input().charAt(startPosition) != startDelimiter) {
                 return ParseResult.error("multi-select", "Expected '" + startDelimiter + "'", startPosition);
             }
 
-            if (input.charAt(endPosition - 1) != endDelimiter) {
+            if (context.input().charAt(endPosition - 1) != endDelimiter) {
                 return ParseResult.error("multi-select", "Expected '" + endDelimiter + "'", endPosition - 1);
             }
 
@@ -346,7 +348,7 @@ public class JmesPathParser {
                 startPositionAfterComma = commaPosition + 1;
             }
 
-            ParseResult<T> entry = entryParser.parse(startPositionAfterComma, endPosition);
+            ParseResult<T> entry = entryParser.parse(startPositionAfterComma, endPosition - 1);
             if (entry.hasError()) {
                 return ParseResult.error("multi-select", "Ambiguous separation", startPosition);
             }
@@ -388,11 +390,11 @@ public class JmesPathParser {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
             endPosition = trimRightWhitespace(startPosition, endPosition);
 
-            if (input.charAt(startPosition) != '[') {
+            if (context.input().charAt(startPosition) != '[') {
                 return ParseResult.error("bracket-specifier", "Expecting '['", startPosition);
             }
 
-            if (input.charAt(endPosition - 1) != ']') {
+            if (context.input().charAt(endPosition - 1) != ']') {
                 return ParseResult.error("bracket-specifier", "Expecting ']'", endPosition - 1);
             }
 
@@ -402,7 +404,7 @@ public class JmesPathParser {
             }
 
             // "[?" expression "]"
-            if (input.charAt(startPosition + 1) == '?') {
+            if (context.input().charAt(startPosition + 1) == '?') {
                 return parseExpression(startPosition + 2, endPosition - 1)
                     .mapResult(e -> BracketSpecifier.withQuestionMark(new BracketSpecifierWithQuestionMark(e)));
             }
@@ -457,52 +459,73 @@ public class JmesPathParser {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
             endPosition = trimRightWhitespace(startPosition, endPosition);
 
-            int parsePosition = startPosition;
-            ParseResult<Integer> firstNumber = parseNumber(startPosition, startPosition + 1);
-            if (!firstNumber.hasError()) {
-                ++parsePosition;
+            // Find the first colon
+            int firstColonIndex = context.input().indexOf(':', startPosition);
+            if (firstColonIndex < 0 || firstColonIndex >= endPosition) {
+                return ParseResult.error("slice-expression", "Expected slice expression", startPosition);
             }
 
-            parsePosition = trimLeftWhitespace(parsePosition, endPosition);
-            if (parseExpectedToken("slice-expression", parsePosition, parsePosition + 1, ':').hasError()) {
-                return ParseResult.error("slice-expression", "Expected ':'", parsePosition);
+            // Find the second colon (if it exists)
+            int maybeSecondColonIndex = context.input().indexOf(':', firstColonIndex + 1);
+            OptionalInt secondColonIndex = maybeSecondColonIndex < 0 || maybeSecondColonIndex >= endPosition
+                                           ? OptionalInt.empty()
+                                           : OptionalInt.of(maybeSecondColonIndex);
+
+            // Find the first number bounds (if it exists)
+            int firstNumberStart = startPosition;
+            int firstNumberEnd = firstColonIndex;
+
+            // Find the second number bounds (if it exists)
+            int secondNumberStart = firstColonIndex + 1;
+            int secondNumberEnd = secondColonIndex.orElse(endPosition);
+
+            // Find the third number bounds (if it exists)
+            int thirdNumberStart = secondColonIndex.orElse(endPosition) + 1;
+            int thirdNumberEnd = endPosition;
+
+            // Parse the first number (if it exists)
+            Optional<Integer> firstNumber = Optional.empty();
+            if (firstNumberStart < firstNumberEnd) {
+                ParseResult<Integer> firstNumberParse = parseNumber(firstNumberStart, firstNumberEnd);
+                if (firstNumberParse.hasError()) {
+                    return ParseResult.error(firstNumberParse.getError());
+                }
+                firstNumber = Optional.of(firstNumberParse.getResult());
             }
 
-            ++parsePosition;
-            parsePosition = trimLeftWhitespace(parsePosition, endPosition);
-            ParseResult<Integer> secondNumber = parseNumber(parsePosition, parsePosition + 1);
-            if (!secondNumber.hasError()) {
-                ++parsePosition;
+            // Parse the second number (if it exists)
+            Optional<Integer> secondNumber = Optional.empty();
+            if (secondNumberStart < secondNumberEnd) {
+                ParseResult<Integer> secondNumberParse = parseNumber(secondNumberStart, secondNumberEnd);
+                if (secondNumberParse.hasError()) {
+                    return ParseResult.error(secondNumberParse.getError());
+                }
+                secondNumber = Optional.of(secondNumberParse.getResult());
             }
 
-            if (parsePosition == endPosition) {
-                return ParseResult.success(new SliceExpression(firstNumber.getResultOrNull(),
-                                                               secondNumber.getResultOrNull(),
-                                                               null));
+            // Parse the third number (if it exists)
+            Optional<Integer> thirdNumber = Optional.empty();
+            if (thirdNumberStart < thirdNumberEnd) {
+                ParseResult<Integer> thirdNumberParse = parseNumber(thirdNumberStart, thirdNumberEnd);
+                if (thirdNumberParse.hasError()) {
+                    return ParseResult.error(thirdNumberParse.getError());
+                }
+                thirdNumber = Optional.of(thirdNumberParse.getResult());
             }
 
-            parsePosition = trimLeftWhitespace(parsePosition, endPosition);
-            if (parseExpectedToken("slice-expression", parsePosition, parsePosition + 1, ':').hasError()) {
-                return ParseResult.error("slice-expression", "Expected ':'", parsePosition);
+            return ParseResult.success(new SliceExpression(firstNumber.orElse(null),
+                                                           secondNumber.orElse(null),
+                                                           thirdNumber.orElse(null)));
+        }
+
+        private int numDigits(int value) {
+            int result = 0;
+            long counter = 1;
+            while (counter <= result) {
+                result++;
+                counter *= 10;
             }
-
-            ++parsePosition;
-            parsePosition = trimLeftWhitespace(parsePosition, endPosition);
-            ParseResult<Integer> thirdNumber = parseNumber(parsePosition, parsePosition + 1);
-
-            if (!thirdNumber.hasError()) {
-                ++parsePosition;
-            }
-
-            parsePosition = trimLeftWhitespace(parsePosition, endPosition);
-            if (parsePosition != endPosition) {
-                return ParseResult.error("slice-expression", "Unexpected character (expected end of slice statement)",
-                                         parsePosition);
-            }
-
-            return ParseResult.success(new SliceExpression(firstNumber.getResultOrNull(),
-                                                           secondNumber.getResultOrNull(),
-                                                           thirdNumber.getResultOrNull()));
+            return result;
         }
 
         /**
@@ -512,16 +535,21 @@ public class JmesPathParser {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
             endPosition = trimRightWhitespace(startPosition, endPosition);
 
-            ParseResult<String> functionName = parseUnquotedString(startPosition, startPosition + 1);
-            if (functionName.hasError()) {
+            int paramIndex = context.input().indexOf('(', startPosition);
+            if (paramIndex <= 0) {
+                return ParseResult.error("function-expression", "Expected function", startPosition);
+            }
+
+            ParseResult<String> functionNameParse = parseUnquotedString(startPosition, paramIndex);
+            if (functionNameParse.hasError()) {
                 return ParseResult.error("function-expression",
-                                         "Expected valid function name (" + functionName.getError().errorMessage + ")",
+                                         "Expected valid function name (" + functionNameParse.getError().errorMessage() + ")",
                                          startPosition);
             }
 
             return new CompositeParser<>("no-args", this::parseNoArgs, this::parseOneOrMoreArgs)
-                .parse(startPosition + 1, endPosition)
-                .mapResult(args -> new FunctionExpression(functionName.getResult(), args));
+                .parse(paramIndex, endPosition)
+                .mapResult(args -> new FunctionExpression(functionNameParse.getResult(), args));
         }
 
         /**
@@ -531,24 +559,18 @@ public class JmesPathParser {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
             endPosition = trimRightWhitespace(startPosition, endPosition);
 
-            if (charsInRange(startPosition, endPosition) != 2) {
-                return ParseResult.error("no-args", "Invalid length", startPosition);
-            }
-
-            if (input.charAt(startPosition) != '(') {
+            if (context.input().charAt(startPosition) != '(') {
                 return ParseResult.error("no-args", "Expected '('", startPosition);
             }
 
-            startPosition = trimLeftWhitespace(startPosition, endPosition);
+            int closePosition = trimLeftWhitespace(startPosition + 1, endPosition);
 
-            if (input.charAt(startPosition) != ')') {
-                return ParseResult.error("no-args", "Expected ')'", startPosition);
+            if (context.input().charAt(closePosition) != ')') {
+                return ParseResult.error("no-args", "Expected ')'", closePosition);
             }
 
-            startPosition = trimLeftWhitespace(startPosition, endPosition);
-
-            if (startPosition != endPosition) {
-                return ParseResult.error("no-args", "Unexpected character", startPosition);
+            if (closePosition + 1 != endPosition) {
+                return ParseResult.error("no-args", "Unexpected character", closePosition + 1);
             }
 
             return ParseResult.success(Collections.emptyList());
@@ -572,7 +594,6 @@ public class JmesPathParser {
         }
 
         /**
-         *
          * current-node        = "@"
          */
         private ParseResult<CurrentNode> parseCurrentNode(int startPosition, int endPosition) {
@@ -589,7 +610,7 @@ public class JmesPathParser {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
             endPosition = trimRightWhitespace(startPosition, endPosition);
 
-            if (input.charAt(startPosition) != '&') {
+            if (context.input().charAt(startPosition) != '&') {
                 return ParseResult.error("expression-type", "Expected '&'", startPosition);
             }
 
@@ -607,11 +628,11 @@ public class JmesPathParser {
                 return ParseResult.error("raw-string", "Invalid length", startPosition);
             }
 
-            if (input.charAt(startPosition) != '\'') {
+            if (context.input().charAt(startPosition) != '\'') {
                 return ParseResult.error("raw-string", "Expected \"'\"", startPosition);
             }
 
-            if (input.charAt(endPosition - 1) != '\'') {
+            if (context.input().charAt(endPosition - 1) != '\'') {
                 return ParseResult.error("raw-string", "Expected \"'\"", endPosition - 1);
             }
 
@@ -624,7 +645,7 @@ public class JmesPathParser {
 
         /**
          * raw-string-char   = (%x20-26 / %x28-5B / %x5D-10FFFF) / preserved-escape /
-         *                       raw-string-escape
+         * raw-string-escape
          */
         private ParseResult<String> parseRawStringChars(int startPosition, int endPosition) {
             return new CompositeParser<>("raw-string-char",
@@ -643,12 +664,12 @@ public class JmesPathParser {
             }
 
             for (int i = startPosition; i < endPosition; i++) {
-                if (!isLegalRawStringChar(input.charAt(i))) {
+                if (!isLegalRawStringChar(context.input().charAt(i))) {
                     return ParseResult.error("raw-string-chars", "Invalid character in sequence", startPosition);
                 }
             }
 
-            return ParseResult.success(input.substring(startPosition, endPosition));
+            return ParseResult.success(context.input().substring(startPosition, endPosition));
         }
 
         private boolean isLegalRawStringChar(char c) {
@@ -665,7 +686,7 @@ public class JmesPathParser {
                 return ParseResult.error("preserved-escape", "Invalid bounds", startPosition);
             }
 
-            if (input.charAt(startPosition) != '\\') {
+            if (context.input().charAt(startPosition) != '\\') {
                 return ParseResult.error("preserved-escape", "Expected \\", startPosition);
             }
 
@@ -680,15 +701,15 @@ public class JmesPathParser {
                 return ParseResult.error("raw-string-escape", "Invalid raw string escape", startPosition);
             }
 
-            if (input.charAt(startPosition) != '\\') {
+            if (context.input().charAt(startPosition) != '\\') {
                 return ParseResult.error("raw-string-escape", "Expected '\\'", startPosition);
             }
 
-            if (input.charAt(startPosition + 1) != '\'' && input.charAt(startPosition + 1) != '\\') {
+            if (context.input().charAt(startPosition + 1) != '\'' && context.input().charAt(startPosition + 1) != '\\') {
                 return ParseResult.error("raw-string-escape", "Expected \"'\"", startPosition);
             }
 
-            return ParseResult.success(input.substring(startPosition, endPosition));
+            return ParseResult.success(context.input().substring(startPosition, endPosition));
         }
 
         /**
@@ -702,17 +723,17 @@ public class JmesPathParser {
                 return ParseResult.error("literal", "Invalid bounds", startPosition);
             }
 
-            if (input.charAt(startPosition) != '`') {
+            if (context.input().charAt(startPosition) != '`') {
                 return ParseResult.error("literal", "Expected '`'", startPosition);
             }
 
-            if (input.charAt(endPosition - 1) != '`') {
+            if (context.input().charAt(endPosition - 1) != '`') {
                 return ParseResult.error("literal", "Expected '`'", endPosition - 1);
             }
 
             StringBuilder jsonString = new StringBuilder();
             for (int i = startPosition + 1; i < endPosition - 1; i++) {
-                char character = input.charAt(i);
+                char character = context.input().charAt(i);
                 if (character == '`') {
                     int lastChar = i - 1;
                     if (lastChar <= 0) {
@@ -721,7 +742,7 @@ public class JmesPathParser {
 
                     int escapeCount = 0;
                     for (int j = i - 1; j >= startPosition; j--) {
-                        if (input.charAt(j) == '\\') {
+                        if (context.input().charAt(j) == '\\') {
                             ++escapeCount;
                         } else {
                             break;
@@ -754,7 +775,7 @@ public class JmesPathParser {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
             endPosition = trimRightWhitespace(startPosition, endPosition);
 
-            if (input.charAt(startPosition) == '-') {
+            if (context.input().charAt(startPosition) == '-') {
                 return parseNonNegativeNumber(startPosition + 1, endPosition).mapResult(i -> -i);
             }
 
@@ -770,7 +791,7 @@ public class JmesPathParser {
             }
 
             try {
-                return ParseResult.success(Integer.parseInt(input.substring(startPosition, endPosition)));
+                return ParseResult.success(Integer.parseInt(context.input().substring(startPosition, endPosition)));
             } catch (NumberFormatException e) {
                 return ParseResult.error("number", "Expected number", startPosition);
             }
@@ -788,10 +809,10 @@ public class JmesPathParser {
 
         /**
          * unquoted-string   = (%x41-5A / %x61-7A / %x5F) *(  ; A-Za-z_
-         *                         %x30-39  /  ; 0-9
-         *                         %x41-5A /  ; A-Z
-         *                         %x5F    /  ; _
-         *                         %x61-7A)   ; a-z
+         * %x30-39  /  ; 0-9
+         * %x41-5A /  ; A-Z
+         * %x5F    /  ; _
+         * %x61-7A)   ; a-z
          */
         private ParseResult<String> parseUnquotedString(int startPosition, int endPosition) {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
@@ -801,19 +822,19 @@ public class JmesPathParser {
                 return ParseResult.error("unquoted-string", "Invalid unquoted-string", startPosition);
             }
 
-            char firstToken = input.charAt(startPosition);
+            char firstToken = context.input().charAt(startPosition);
             if (!Character.isLetter(firstToken) && firstToken != '_') {
                 return ParseResult.error("unquoted-string", "Unescaped strings must start with [A-Za-z_]", startPosition);
             }
 
             for (int i = startPosition; i < endPosition; i++) {
-                char c = input.charAt(i);
+                char c = context.input().charAt(i);
                 if (!Character.isLetterOrDigit(c) && c != '_') {
                     return ParseResult.error("unquoted-string", "Invalid character in unescaped-string", i);
                 }
             }
 
-            return ParseResult.success(input.substring(startPosition, endPosition));
+            return ParseResult.success(context.input().substring(startPosition, endPosition));
         }
 
         /**
@@ -823,11 +844,11 @@ public class JmesPathParser {
             startPosition = trimLeftWhitespace(startPosition, endPosition);
             endPosition = trimRightWhitespace(startPosition, endPosition);
 
-            if (!(input.charAt(startPosition) == '\'')) {
+            if (!(context.input().charAt(startPosition) == '\'')) {
                 return ParseResult.error("quoted-string", "Expected \"'\"", startPosition);
             }
 
-            if (!(input.charAt(endPosition - 1) == '\'')) {
+            if (!(context.input().charAt(endPosition - 1) == '\'')) {
                 return ParseResult.error("quoted-string", "Expected \"'\"", endPosition - 1);
             }
 
@@ -859,12 +880,12 @@ public class JmesPathParser {
          */
         private ParseResult<String> parseUnescapedChar(int startPosition, int endPosition) {
             for (int i = startPosition; i < endPosition; i++) {
-                if (!isLegalUnescapedChar(input.charAt(i))) {
+                if (!isLegalUnescapedChar(context.input().charAt(i))) {
                     return ParseResult.error("unescaped-char", "Invalid character in sequence", startPosition);
                 }
             }
 
-            return ParseResult.success(input.substring(startPosition, endPosition));
+            return ParseResult.success(context.input().substring(startPosition, endPosition));
         }
 
         private boolean isLegalUnescapedChar(char c) {
@@ -875,35 +896,43 @@ public class JmesPathParser {
 
         /**
          * escaped-char      = escape (
-         *                         %x22 /          ; "    quotation mark  U+0022
-         *                         %x5C /          ; \    reverse solidus U+005C
-         *                         %x2F /          ; /    solidus         U+002F
-         *                         %x62 /          ; b    backspace       U+0008
-         *                         %x66 /          ; f    form feed       U+000C
-         *                         %x6E /          ; n    line feed       U+000A
-         *                         %x72 /          ; r    carriage return U+000D
-         *                         %x74 /          ; t    tab             U+0009
-         *                         %x75 4HEXDIG )  ; uXXXX                U+XXXX
+         * %x22 /          ; "    quotation mark  U+0022
+         * %x5C /          ; \    reverse solidus U+005C
+         * %x2F /          ; /    solidus         U+002F
+         * %x62 /          ; b    backspace       U+0008
+         * %x66 /          ; f    form feed       U+000C
+         * %x6E /          ; n    line feed       U+000A
+         * %x72 /          ; r    carriage return U+000D
+         * %x74 /          ; t    tab             U+0009
+         * %x75 4HEXDIG )  ; uXXXX                U+XXXX
          */
         private ParseResult<String> parseEscapedChar(int startPosition, int endPosition) {
             if (charsInRange(startPosition, endPosition) >= 2) {
                 return ParseResult.error("escaped-char", "Invalid escape-char sequence", startPosition);
             }
 
-            if (input.charAt(startPosition) != '\\') {
+            if (context.input().charAt(startPosition) != '\\') {
                 return ParseResult.error("escaped-char", "Expected '\\'", startPosition);
             }
 
-            char escapedChar = input.charAt(startPosition + 1);
+            char escapedChar = context.input().charAt(startPosition + 1);
             switch (escapedChar) {
-                case '"': return ParseResult.success("\\\"");
-                case '\\': return ParseResult.success("\\\\");
-                case '/': return ParseResult.success("/");
-                case 'b': return ParseResult.success("\\b");
-                case 'f': return ParseResult.success("\\f");
-                case 'n': return ParseResult.success("\\n");
-                case 'r': return ParseResult.success("\\r");
-                case 't': return ParseResult.success("\\t");
+                case '"':
+                    return ParseResult.success("\\\"");
+                case '\\':
+                    return ParseResult.success("\\\\");
+                case '/':
+                    return ParseResult.success("/");
+                case 'b':
+                    return ParseResult.success("\\b");
+                case 'f':
+                    return ParseResult.success("\\f");
+                case 'n':
+                    return ParseResult.success("\\n");
+                case 'r':
+                    return ParseResult.success("\\r");
+                case 't':
+                    return ParseResult.success("\\t");
                 default: // continue
             }
 
@@ -916,14 +945,14 @@ public class JmesPathParser {
                 return ParseResult.error("escaped-char", "Invalid unicode sequence", startPosition);
             }
 
-            String unicodePattern = input.substring(startPosition + 1, unicodeEndIndex);
+            String unicodePattern = context.input().substring(startPosition + 1, unicodeEndIndex);
             try {
                 Long.parseLong(unicodePattern, 16);
             } catch (NumberFormatException e) {
                 return ParseResult.error("escaped-char", "Invalid unicode hex sequence", startPosition);
             }
 
-            return ParseResult.success(input.substring(startPosition, endPosition));
+            return ParseResult.success(context.input().substring(startPosition, endPosition));
         }
 
         /**
@@ -942,7 +971,7 @@ public class JmesPathParser {
 
             int start = startPosition;
             while (true) {
-                int match = input.indexOf(symbol, start);
+                int match = context.input().indexOf(symbol, start);
                 if (match < 0 || match >= endPosition) {
                     break;
                 }
@@ -954,7 +983,7 @@ public class JmesPathParser {
         }
 
         private ParseResult<Void> parseExpectedToken(String parser, int startPosition, int endPosition, char expectedToken) {
-            if (input.charAt(startPosition) != expectedToken) {
+            if (context.input().charAt(startPosition) != expectedToken) {
                 return ParseResult.error(parser, "Expected '" + expectedToken + "'", startPosition);
             }
 
@@ -966,7 +995,7 @@ public class JmesPathParser {
         }
 
         private int trimLeftWhitespace(int startPosition, int endPosition) {
-            while (input.charAt(startPosition) == ' ' && startPosition < endPosition - 1) {
+            while (context.input().charAt(startPosition) == ' ' && startPosition < endPosition - 1) {
                 ++startPosition;
             }
 
@@ -974,166 +1003,11 @@ public class JmesPathParser {
         }
 
         private int trimRightWhitespace(int startPosition, int endPosition) {
-            while (input.charAt(endPosition - 1) == ' ' && startPosition < endPosition - 1) {
+            while (context.input().charAt(endPosition - 1) == ' ' && startPosition < endPosition - 1) {
                 --endPosition;
             }
 
             return endPosition;
-        }
-
-        private final class CompositeParser<T> implements Parser<T> {
-            private final String expectedType;
-            private final List<Parser<T>> parsers;
-
-            @SafeVarargs
-            private CompositeParser(String expectedType, Parser<T>... parsers) {
-                this.expectedType = expectedType;
-                this.parsers = Arrays.asList(parsers);
-            }
-
-            @Override
-            public ParseResult<T> parse(int startPosition, int endPosition) {
-                ++errorIndentationLevel;
-
-                StringBuilder indentation = new StringBuilder();
-                for (int i = 0; i < errorIndentationLevel * 2; i++) {
-                    indentation.append(' ');
-                }
-
-                StringBuilder errorMessage = new StringBuilder();
-                for (Parser<T> parseCall : parsers) {
-                    ParseResult<T> parseResult = parseCall.parse(startPosition, endPosition);
-
-                    if (parseResult.hasResult()) {
-                        return parseResult;
-                    } else {
-                        ParseError error = parseResult.getError();
-
-                        String parseErrorMessage = removeFormatting(error.errorMessage);
-                        errorMessage.append(indentation).append("Not a ").append(error.parser).append(" at ")
-                                    .append(error.position).append(":\n")
-                                    .append(indentation).append("  ").append(parseErrorMessage).append("\n");
-                    }
-                }
-
-                --errorIndentationLevel;
-
-                return ParseResult.error(expectedType, errorMessage.toString(), startPosition);
-            }
-
-            private String removeFormatting(String error) {
-                int firstNonSpace = 0;
-                while (firstNonSpace < error.length() && error.charAt(firstNonSpace) == ' ') {
-                    ++firstNonSpace;
-                }
-                int lastCharExclusive = error.length();
-                if (error.endsWith("\n")) {
-                    --lastCharExclusive;
-                }
-
-                return error.substring(firstNonSpace, lastCharExclusive);
-            }
-        }
-    }
-
-    private static final class ConvertingParser<T, U> implements Parser<U> {
-        private final Parser<T> parser;
-        private final Function<T, U> finalizer;
-
-        private ConvertingParser(Parser<T> parser, Function<T, U> finalizer) {
-            this.parser = parser;
-            this.finalizer = finalizer;
-        }
-
-        @Override
-        public ParseResult<U> parse(int startPosition, int endPosition) {
-            ParseResult<T> result = parser.parse(startPosition, endPosition);
-
-            if (result.hasError()) {
-                return ParseResult.error(result.getError());
-            } else {
-                return ParseResult.success(finalizer.apply(result.getResult()));
-            }
-        }
-    }
-
-
-    @FunctionalInterface
-    private interface Parser<T> {
-        ParseResult<T> parse(int startPosition, int endPosition);
-    }
-
-    private static final class ParseResult<T> {
-        private final T result;
-        private final ParseError error;
-
-        private ParseResult(T result, ParseError error) {
-            this.result = result;
-            this.error = error;
-        }
-
-        public static <T> ParseResult<T> success(T result) {
-            return new ParseResult<>(result, null);
-        }
-
-        public static <T> ParseResult<T> error(String parser, String errorMessage, int position) {
-            Validate.notNull(errorMessage, "errorMessage");
-            return error(new ParseError(parser, errorMessage, position));
-        }
-
-        public static <T> ParseResult<T> error(ParseError error) {
-            Validate.notNull(error, "error");
-            return new ParseResult<>(null, error);
-        }
-
-        public <U> ParseResult<U> mapResult(Function<T, U> mapper) {
-            if (hasError()) {
-                return ParseResult.error(error);
-            } else {
-                return ParseResult.success(mapper.apply(result));
-            }
-        }
-
-        public boolean hasResult() {
-            return result != null;
-        }
-
-        public boolean hasError() {
-            return error != null;
-        }
-
-        private T getResult() {
-            Validate.validState(hasResult(), "Result not available");
-            return result;
-        }
-
-        private T getResultOrNull() {
-            if (!hasResult()) {
-                return null;
-            }
-
-            return result;
-        }
-
-        private ParseError getError() {
-            Validate.validState(hasError(), "Error not available");
-            return error;
-        }
-
-        public String parser() {
-            return null;
-        }
-    }
-
-    private static final class ParseError {
-        private final String parser;
-        private final String errorMessage;
-        private final int position;
-
-        private ParseError(String parser, String errorMessage, int position) {
-            this.parser = parser;
-            this.errorMessage = errorMessage;
-            this.position = position;
         }
     }
 }

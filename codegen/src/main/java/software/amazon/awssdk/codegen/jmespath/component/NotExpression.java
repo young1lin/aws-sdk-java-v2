@@ -22,7 +22,7 @@ public class NotExpression {
         this.expression = expression;
     }
 
-    private Expression expression() {
+    public Expression expression() {
         return expression;
     }
 }

@@ -16,19 +16,19 @@
 package software.amazon.awssdk.codegen.jmespath.component;
 
 public class KeyValueExpression {
-    private final String identifier;
-    private final Expression expression;
+    private final String key;
+    private final Expression value;
 
-    public KeyValueExpression(String identifier, Expression expression) {
-        this.identifier = identifier;
-        this.expression = expression;
+    public KeyValueExpression(String key, Expression value) {
+        this.key = key;
+        this.value = value;
     }
 
-    public String identifier() {
-        return identifier;
+    public String key() {
+        return key;
     }
 
-    public Expression expression() {
-        return expression;
+    public Expression value() {
+        return value;
     }
 }

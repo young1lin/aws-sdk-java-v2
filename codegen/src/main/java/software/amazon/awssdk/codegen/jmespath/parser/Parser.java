@@ -13,16 +13,9 @@
  * permissions and limitations under the License.
  */
 
-package software.amazon.awssdk.codegen.jmespath.component;
+package software.amazon.awssdk.codegen.jmespath.parser;
 
-public class ParenExpression {
-    private final Expression expression;
-
-    public ParenExpression(Expression expression) {
-        this.expression = expression;
-    }
-
-    public Expression expression() {
-        return expression;
-    }
+@FunctionalInterface
+public interface Parser<T> {
+    ParseResult<T> parse(int startPosition, int endPosition);
 }
