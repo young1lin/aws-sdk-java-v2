@@ -33,13 +33,8 @@ public final class CompositeParser<T> implements Parser<T> {
 
     @Override
     public ParseResult<T> parse(int startPosition, int endPosition) {
-        //                ++errorIndentationLevel;
 
         StringBuilder indentation = new StringBuilder();
-        //                for (int i = 0; i < errorIndentationLevel * 2; i++) {
-        //                    indentation.append(' ');
-        //                }
-
         StringBuilder errorMessage = new StringBuilder();
         for (Parser<T> parseCall : parsers) {
             ParseResult<T> parseResult = parseCall.parse(startPosition, endPosition);
@@ -55,8 +50,6 @@ public final class CompositeParser<T> implements Parser<T> {
                             .append(indentation).append("  ").append(parseErrorMessage).append("\n");
             }
         }
-
-        //                --errorIndentationLevel;
 
         return ParseResult.error(expectedType, errorMessage.toString(), startPosition);
     }
