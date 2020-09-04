@@ -15,42 +15,42 @@
 
 package software.amazon.awssdk.codegen.jmespath.parser.util;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import software.amazon.awssdk.codegen.jmespath.parser.ParseError;
 import software.amazon.awssdk.codegen.jmespath.parser.ParseResult;
 import software.amazon.awssdk.codegen.jmespath.parser.Parser;
 import software.amazon.awssdk.codegen.jmespath.parser.ParserContext;
 
-public final class CompositeParser<T> implements Parser<T> {
-    private final String name;
-    private final List<Parser<T>> parsers;
+public class OrElseParser<T> implements Parser<T> {
+    private final Parser<T> first;
+    private final Parser<T> second;
 
-    @SafeVarargs
-    public CompositeParser(String name, Parser<T>... parsers) {
-        this.name = name;
-        this.parsers = Arrays.asList(parsers);
+    public OrElseParser(Parser<T> first, Parser<T> second) {
+        this.first = first;
+        this.second = second;
     }
 
     @Override
     public String name() {
-        return name;
+        return first.name() + " or " + second.name();
     }
 
     @Override
     public ParseResult<T> parse(int startPosition, int endPosition, ParserContext context) {
-        List<ParseError> errors = new ArrayList<>();
-        for (Parser<T> parseCall : parsers) {
-            ParseResult<T> parseResult = parseCall.parse(startPosition, endPosition, context);
-
-            if (parseResult.hasResult()) {
-                return parseResult;
-            } else {
-                errors.add(parseResult.error());
-            }
+        ParseResult<T> firstResult = first.parse(startPosition, endPosition, context);
+        if (!firstResult.hasError()) {
+            return firstResult;
         }
 
-        return ParseResult.error(name, errors.toString(), startPosition);
+        ParseResult<T> secondResult = second.parse(startPosition, endPosition, context);
+        if (!firstResult.hasError()) {
+            return secondResult;
+        }
+
+        ParseError firstError = firstResult.error();
+        ParseError secondError = secondResult.error();
+        return ParseResult.error(name(),
+                                 firstError.parser() + ": " + firstError.errorMessage() + " at " + firstError.position() + "; " +
+                                 secondError.parser() + ": " + secondError.errorMessage() + " at " + secondError.position(),
+                                 startPosition);
     }
 }

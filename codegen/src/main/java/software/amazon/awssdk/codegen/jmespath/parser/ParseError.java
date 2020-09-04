@@ -15,6 +15,8 @@
 
 package software.amazon.awssdk.codegen.jmespath.parser;
 
+import software.amazon.awssdk.utils.ToString;
+
 public final class ParseError {
     private final String parser;
     private final String errorMessage;
@@ -36,5 +38,14 @@ public final class ParseError {
 
     public int position() {
         return position;
+    }
+
+    @Override
+    public String toString() {
+        return ToString.builder("ParseError")
+                       .add("parser", parser)
+                       .add("errorMessage", errorMessage)
+                       .add("position", position)
+                       .build();
     }
 }

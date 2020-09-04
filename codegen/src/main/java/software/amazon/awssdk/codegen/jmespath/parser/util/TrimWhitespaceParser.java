@@ -15,33 +15,19 @@
 
 package software.amazon.awssdk.codegen.jmespath.parser.util;
 
-import java.util.function.Function;
 import software.amazon.awssdk.codegen.jmespath.parser.ParseResult;
 import software.amazon.awssdk.codegen.jmespath.parser.Parser;
 import software.amazon.awssdk.codegen.jmespath.parser.ParserContext;
 
-public final class ConvertingParser<T, U> implements Parser<U> {
-    private final Parser<T> parser;
-    private final Function<T, U> converter;
-
-    public ConvertingParser(Parser<T> parser, Function<T, U> converter) {
-        this.parser = parser;
-        this.converter = converter;
+public class TrimWhitespaceParser<T> extends DelegatingParser<T> {
+    public TrimWhitespaceParser(Parser<T> delegate) {
+        super(delegate);
     }
 
     @Override
-    public String name() {
-        return parser.name();
-    }
-
-    @Override
-    public ParseResult<U> parse(int startPosition, int endPosition, ParserContext context) {
-        ParseResult<T> result = parser.parse(startPosition, endPosition, context);
-
-        if (result.hasError()) {
-            return ParseResult.error(result.error());
-        } else {
-            return ParseResult.success(converter.apply(result.result()));
-        }
+    public ParseResult<T> parse(int startPosition, int endPosition, ParserContext context) {
+        startPosition = ParserUtils.trimLeftWhitespace(startPosition, endPosition, context);
+        endPosition = ParserUtils.trimRightWhitespace(startPosition, endPosition, context);
+        return delegate.parse(startPosition, endPosition, context);
     }
 }

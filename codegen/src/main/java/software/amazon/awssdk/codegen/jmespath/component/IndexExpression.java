@@ -22,14 +22,10 @@ public class IndexExpression {
     private final Expression expression;
     private final BracketSpecifier bracketSpecifier;
 
-    private IndexExpression(Expression expression, BracketSpecifier bracketSpecifier) {
+    public IndexExpression(Expression expression, BracketSpecifier bracketSpecifier) {
+        Validate.notNull(bracketSpecifier, "bracketSpecifier");
         this.expression = expression;
         this.bracketSpecifier = bracketSpecifier;
-    }
-
-    public static IndexExpression indexExpression(Expression expression, BracketSpecifier bracketSpecifier) {
-        Validate.notNull(bracketSpecifier, "bracketSpecifier");
-        return new IndexExpression(expression, bracketSpecifier);
     }
 
     public Optional<Expression> expression() {

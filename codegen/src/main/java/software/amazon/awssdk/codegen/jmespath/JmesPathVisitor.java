@@ -24,7 +24,7 @@ import software.amazon.awssdk.codegen.jmespath.component.BracketSpecifierWithQue
 import software.amazon.awssdk.codegen.jmespath.component.BracketSpecifierWithoutContents;
 import software.amazon.awssdk.codegen.jmespath.component.Comparator;
 import software.amazon.awssdk.codegen.jmespath.component.ComparatorExpression;
-import software.amazon.awssdk.codegen.jmespath.component.CurrentNode;
+import software.amazon.awssdk.codegen.jmespath.component.CurrentNodeExpression;
 import software.amazon.awssdk.codegen.jmespath.component.Expression;
 import software.amazon.awssdk.codegen.jmespath.component.ExpressionType;
 import software.amazon.awssdk.codegen.jmespath.component.FunctionArg;
@@ -106,7 +106,7 @@ public interface JmesPathVisitor {
     default void visitFunctionArg(FunctionArg functionArg) {
     }
 
-    default void visitCurrentNode(CurrentNode currentNode) {
+    default void visitCurrentNode(CurrentNodeExpression currentNodeExpression) {
     }
 
     default void visitExpressionType(ExpressionType expressionType) {

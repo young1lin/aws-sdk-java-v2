@@ -16,6 +16,7 @@
 package software.amazon.awssdk.codegen.jmespath.parser;
 
 import java.util.function.Function;
+import java.util.function.Supplier;
 import software.amazon.awssdk.utils.Validate;
 
 public final class ParseResult<T> {
@@ -41,11 +42,35 @@ public final class ParseResult<T> {
         return new ParseResult<>(null, error);
     }
 
+    public <U> ParseResult<U> ifSuccessful(Supplier<ParseResult<U>> ifSuccess) {
+        if (hasError()) {
+            return ParseResult.error(error);
+        } else {
+            return ifSuccess.get();
+        }
+    }
+
     public <U> ParseResult<U> mapResult(Function<T, U> mapper) {
         if (hasError()) {
             return ParseResult.error(error);
         } else {
             return ParseResult.success(mapper.apply(result));
+        }
+    }
+
+    public <U> ParseResult<U> flatMapResult(Function<T, ParseResult<U>> mapper) {
+        if (hasError()) {
+            return ParseResult.error(error);
+        } else {
+            return mapper.apply(result);
+        }
+    }
+
+    public ParseResult<T> orElse(Supplier<ParseResult<T>> orElse) {
+        if (hasError()) {
+            return orElse.get();
+        } else {
+            return this;
         }
     }
 
@@ -57,20 +82,12 @@ public final class ParseResult<T> {
         return error != null;
     }
 
-    public T getResult() {
+    public T result() {
         Validate.validState(hasResult(), "Result not available");
         return result;
     }
 
-    public T getResultOrNull() {
-        if (!hasResult()) {
-            return null;
-        }
-
-        return result;
-    }
-
-    public ParseError getError() {
+    public ParseError error() {
         Validate.validState(hasError(), "Error not available");
         return error;
     }

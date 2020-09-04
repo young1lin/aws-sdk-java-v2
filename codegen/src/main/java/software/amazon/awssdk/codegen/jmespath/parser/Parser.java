@@ -15,7 +15,25 @@
 
 package software.amazon.awssdk.codegen.jmespath.parser;
 
-@FunctionalInterface
+import java.util.function.Function;
+import software.amazon.awssdk.codegen.jmespath.parser.util.AndThenParser;
+import software.amazon.awssdk.codegen.jmespath.parser.util.ConvertingParser;
+import software.amazon.awssdk.codegen.jmespath.parser.util.OrElseParser;
+
 public interface Parser<T> {
-    ParseResult<T> parse(int startPosition, int endPosition);
+    String name();
+
+    ParseResult<T> parse(int startPosition, int endPosition, ParserContext context);
+
+    default <U> Parser<U> map(Function<T, U> mapper) {
+        return new ConvertingParser<>(this, mapper);
+    }
+
+    default Parser<T> orElse(Parser<T> fallbackParser) {
+        return new OrElseParser<>(this, fallbackParser);
+    }
+
+    default <U> Parser<U> andThen(Function<T, ParseResult<U>> onSuccessFunction) {
+        return new AndThenParser<>(this, onSuccessFunction);
+    }
 }

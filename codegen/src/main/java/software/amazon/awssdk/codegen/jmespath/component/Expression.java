@@ -33,7 +33,7 @@ public class Expression {
     private FunctionExpression functionExpression;
     private PipeExpression pipeExpression;
     private String rawString;
-    private CurrentNode currentNode;
+    private CurrentNodeExpression currentNodeExpression;
 
     public static Expression subExpression(SubExpression subExpression) {
         Validate.notNull(subExpression, "subExpression");
@@ -140,10 +140,10 @@ public class Expression {
         return expression;
     }
 
-    public static Expression currentNode(CurrentNode currentNode) {
-        Validate.notNull(currentNode, "currentNode");
+    public static Expression currentNode(CurrentNodeExpression currentNodeExpression) {
+        Validate.notNull(currentNodeExpression, "currentNode");
         Expression expression = new Expression();
-        expression.currentNode = currentNode;
+        expression.currentNodeExpression = currentNodeExpression;
         return expression;
     }
 
@@ -209,7 +209,7 @@ public class Expression {
     }
 
     public boolean isCurrentNode() {
-        return currentNode != null;
+        return currentNodeExpression != null;
     }
 
     public SubExpression asSubExpression() {
@@ -287,9 +287,9 @@ public class Expression {
         return rawString;
     }
 
-    public CurrentNode asCurrentNode() {
+    public CurrentNodeExpression asCurrentNode() {
         Validate.validState(isCurrentNode(), "Not a CurrentNode");
-        return currentNode;
+        return currentNodeExpression;
     }
 
 //

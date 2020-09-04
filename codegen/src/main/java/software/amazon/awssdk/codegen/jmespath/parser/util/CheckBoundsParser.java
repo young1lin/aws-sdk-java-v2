@@ -15,33 +15,24 @@
 
 package software.amazon.awssdk.codegen.jmespath.parser.util;
 
-import java.util.function.Function;
 import software.amazon.awssdk.codegen.jmespath.parser.ParseResult;
 import software.amazon.awssdk.codegen.jmespath.parser.Parser;
 import software.amazon.awssdk.codegen.jmespath.parser.ParserContext;
 
-public final class ConvertingParser<T, U> implements Parser<U> {
-    private final Parser<T> parser;
-    private final Function<T, U> converter;
-
-    public ConvertingParser(Parser<T> parser, Function<T, U> converter) {
-        this.parser = parser;
-        this.converter = converter;
+public final class CheckBoundsParser<T> extends DelegatingParser<T> {
+    public CheckBoundsParser(Parser<T> delegate) {
+        super(delegate);
     }
 
     @Override
-    public String name() {
-        return parser.name();
-    }
-
-    @Override
-    public ParseResult<U> parse(int startPosition, int endPosition, ParserContext context) {
-        ParseResult<T> result = parser.parse(startPosition, endPosition, context);
-
-        if (result.hasError()) {
-            return ParseResult.error(result.error());
-        } else {
-            return ParseResult.success(converter.apply(result.result()));
+    public ParseResult<T> parse(int startPosition, int endPosition, ParserContext context) {
+        if (startPosition < 0) {
+            return ParseResult.error(name(), "Invalid start position: " + startPosition, startPosition);
         }
+        if (endPosition > context.input().length()) {
+            return ParseResult.error(name(), "Invalid end position: " + endPosition, startPosition);
+        }
+
+        return delegate.parse(startPosition, endPosition, context);
     }
 }

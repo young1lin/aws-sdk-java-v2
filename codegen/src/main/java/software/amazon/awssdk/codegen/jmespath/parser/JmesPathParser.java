@@ -69,11 +69,11 @@ public class JmesPathParser {
         private Expression parse() {
             ParseResult<Expression> expression = parseExpression(0, context.input().length());
             if (expression.hasError()) {
-                ParseError error = expression.getError();
+                ParseError error = expression.error();
                 throw new IllegalArgumentException("Failed to parse expression:\n" + error.errorMessage());
             }
 
-            return expression.getResult();
+            return expression.result();
         }
 
         /**
@@ -145,7 +145,7 @@ public class JmesPathParser {
                     continue;
                 }
 
-                return ParseResult.success(new SubExpression(leftSide.getResult(), rightSide.getResult()));
+                return ParseResult.success(new SubExpression(leftSide.result(), rightSide.result()));
             }
 
             return ParseResult.error("sub-expression", "Invalid sub-expression", startPosition);
@@ -189,7 +189,7 @@ public class JmesPathParser {
                     continue;
                 }
 
-                return ParseResult.success(constructor.apply(leftSide.getResult(), rightSide.getResult()));
+                return ParseResult.success(constructor.apply(leftSide.result(), rightSide.result()));
             }
 
             return ParseResult.error("binary-expression", "Invalid binary-expression", startPosition);
@@ -260,7 +260,7 @@ public class JmesPathParser {
                     continue;
                 }
 
-                return ParseResult.success(IndexExpression.indexExpression(leftSide.getResult(), rightSide.getResult()));
+                return ParseResult.success(IndexExpression.indexExpression(leftSide.result(), rightSide.result()));
             }
 
             return ParseResult.error("index-expression with lhs-expression", "Invalid index-expression with lhs-expression",
@@ -318,7 +318,7 @@ public class JmesPathParser {
                     continue;
                 }
 
-                results.add(result.getResult());
+                results.add(result.result());
                 startOfSecondEntry = comma + 1;
             }
 
@@ -343,7 +343,7 @@ public class JmesPathParser {
                     continue;
                 }
 
-                results.add(entry.getResult());
+                results.add(entry.result());
 
                 startPositionAfterComma = commaPosition + 1;
             }
@@ -352,7 +352,7 @@ public class JmesPathParser {
             if (entry.hasError()) {
                 return ParseResult.error("multi-select", "Ambiguous separation", startPosition);
             }
-            results.add(entry.getResult());
+            results.add(entry.result());
 
             return ParseResult.success(results);
         }
@@ -376,7 +376,7 @@ public class JmesPathParser {
                     continue;
                 }
 
-                return ParseResult.success(new KeyValueExpression(identifier.getResult(), expression.getResult()));
+                return ParseResult.success(new KeyValueExpression(identifier.result(), expression.result()));
             }
 
             return ParseResult.error("keyval-expr", "Invalid keyval-expr", startPosition);
@@ -442,9 +442,9 @@ public class JmesPathParser {
                         continue;
                     }
 
-                    return ParseResult.success(new ComparatorExpression(lhsExpression.getResult(),
+                    return ParseResult.success(new ComparatorExpression(lhsExpression.result(),
                                                                         comparator,
-                                                                        rhsExpression.getResult()));
+                                                                        rhsExpression.result()));
                 }
             }
 
@@ -488,9 +488,9 @@ public class JmesPathParser {
             if (firstNumberStart < firstNumberEnd) {
                 ParseResult<Integer> firstNumberParse = parseNumber(firstNumberStart, firstNumberEnd);
                 if (firstNumberParse.hasError()) {
-                    return ParseResult.error(firstNumberParse.getError());
+                    return ParseResult.error(firstNumberParse.error());
                 }
-                firstNumber = Optional.of(firstNumberParse.getResult());
+                firstNumber = Optional.of(firstNumberParse.result());
             }
 
             // Parse the second number (if it exists)
@@ -498,9 +498,9 @@ public class JmesPathParser {
             if (secondNumberStart < secondNumberEnd) {
                 ParseResult<Integer> secondNumberParse = parseNumber(secondNumberStart, secondNumberEnd);
                 if (secondNumberParse.hasError()) {
-                    return ParseResult.error(secondNumberParse.getError());
+                    return ParseResult.error(secondNumberParse.error());
                 }
-                secondNumber = Optional.of(secondNumberParse.getResult());
+                secondNumber = Optional.of(secondNumberParse.result());
             }
 
             // Parse the third number (if it exists)
@@ -508,9 +508,9 @@ public class JmesPathParser {
             if (thirdNumberStart < thirdNumberEnd) {
                 ParseResult<Integer> thirdNumberParse = parseNumber(thirdNumberStart, thirdNumberEnd);
                 if (thirdNumberParse.hasError()) {
-                    return ParseResult.error(thirdNumberParse.getError());
+                    return ParseResult.error(thirdNumberParse.error());
                 }
-                thirdNumber = Optional.of(thirdNumberParse.getResult());
+                thirdNumber = Optional.of(thirdNumberParse.result());
             }
 
             return ParseResult.success(new SliceExpression(firstNumber.orElse(null),
@@ -543,13 +543,13 @@ public class JmesPathParser {
             ParseResult<String> functionNameParse = parseUnquotedString(startPosition, paramIndex);
             if (functionNameParse.hasError()) {
                 return ParseResult.error("function-expression",
-                                         "Expected valid function name (" + functionNameParse.getError().errorMessage() + ")",
+                                         "Expected valid function name (" + functionNameParse.error().errorMessage() + ")",
                                          startPosition);
             }
 
             return new CompositeParser<>("no-args", this::parseNoArgs, this::parseOneOrMoreArgs)
                 .parse(paramIndex, endPosition)
-                .mapResult(args -> new FunctionExpression(functionNameParse.getResult(), args));
+                .mapResult(args -> new FunctionExpression(functionNameParse.result(), args));
         }
 
         /**
@@ -651,20 +651,20 @@ public class JmesPathParser {
             for (int i = startPosition; i < endPosition; i++) {
                 ParseResult<String> rawStringChar = parseLegalRawStringChar(i, i + 1);
                 if (!rawStringChar.hasError()) {
-                    result.append(rawStringChar.getResult());
+                    result.append(rawStringChar.result());
                     continue;
                 }
 
                 ParseResult<String> preservedEscape = parsePreservedEscape(i, i + 2);
                 if (!preservedEscape.hasError()) {
-                    result.append(preservedEscape.getResult());
+                    result.append(preservedEscape.result());
                     ++i;
                     continue;
                 }
 
                 ParseResult<String> rawStringEscape = parseRawStringEscape(i, i + 2);
                 if (!rawStringEscape.hasError()) {
-                    result.append(rawStringEscape.getResult());
+                    result.append(rawStringEscape.result());
                     ++i;
                     continue;
                 }
@@ -894,20 +894,20 @@ public class JmesPathParser {
             for (int i = stringStart; i < stringEnd; i++) {
                 ParseResult<String> unescapedChar = parseUnescapedChar(i, i + 1);
                 if (!unescapedChar.hasError()) {
-                    result.append(unescapedChar.getResult());
+                    result.append(unescapedChar.result());
                     continue;
                 }
 
                 ParseResult<String> escapedChar = parseEscapedChar(i, i + 2);
                 if (!escapedChar.hasError()) {
-                    result.append(escapedChar.getResult());
+                    result.append(escapedChar.result());
                     ++i;
                     continue;
                 }
 
                 ParseResult<String> escapedUnicodeSequence = parseEscapedUnicodeSequence(i, i + 6);
                 if (!escapedUnicodeSequence.hasError()) {
-                    result.append(escapedUnicodeSequence.getResult());
+                    result.append(escapedUnicodeSequence.result());
                     i += 5;
                     continue;
                 }

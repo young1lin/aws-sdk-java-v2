@@ -15,33 +15,22 @@
 
 package software.amazon.awssdk.codegen.jmespath.parser.util;
 
-import java.util.function.Function;
 import software.amazon.awssdk.codegen.jmespath.parser.ParseResult;
 import software.amazon.awssdk.codegen.jmespath.parser.Parser;
 import software.amazon.awssdk.codegen.jmespath.parser.ParserContext;
 
-public final class ConvertingParser<T, U> implements Parser<U> {
-    private final Parser<T> parser;
-    private final Function<T, U> converter;
+public class InlineParser<T> extends Parser<T> {
 
-    public ConvertingParser(Parser<T> parser, Function<T, U> converter) {
-        this.parser = parser;
-        this.converter = converter;
-    }
 
     @Override
     public String name() {
-        return parser.name();
+        return null;
     }
 
     @Override
-    public ParseResult<U> parse(int startPosition, int endPosition, ParserContext context) {
-        ParseResult<T> result = parser.parse(startPosition, endPosition, context);
-
-        if (result.hasError()) {
-            return ParseResult.error(result.error());
-        } else {
-            return ParseResult.success(converter.apply(result.result()));
-        }
+    public ParseResult<T> parse(int startPosition, int endPosition, ParserContext context) {
+        return null;
     }
+
+    public
 }
