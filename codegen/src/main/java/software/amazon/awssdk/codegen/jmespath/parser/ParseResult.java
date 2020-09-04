@@ -20,32 +20,25 @@ import software.amazon.awssdk.utils.Validate;
 
 public final class ParseResult<T> {
     private final T result;
-    private final ParseError error;
 
-    private ParseResult(T result, ParseError error) {
+    private ParseResult(T result) {
         this.result = result;
-        this.error = error;
     }
 
     public static <T> ParseResult<T> success(T result) {
-        return new ParseResult<>(result, null);
+        Validate.notNull(result, "result");
+        return new ParseResult<>(result);
     }
 
-    public static <T> ParseResult<T> error(String parser, String errorMessage, int position) {
-        Validate.notNull(errorMessage, "errorMessage");
-        return error(new ParseError(parser, errorMessage, position));
-    }
-
-    public static <T> ParseResult<T> error(ParseError error) {
-        Validate.notNull(error, "error");
-        return new ParseResult<>(null, error);
+    public static <T> ParseResult<T> error() {
+        return new ParseResult<>(null);
     }
 
     public <U> ParseResult<U> mapResult(Function<T, U> mapper) {
-        if (hasError()) {
-            return ParseResult.error(error);
-        } else {
+        if (hasResult()) {
             return ParseResult.success(mapper.apply(result));
+        } else {
+            return ParseResult.error();
         }
     }
 
@@ -53,25 +46,8 @@ public final class ParseResult<T> {
         return result != null;
     }
 
-    public boolean hasError() {
-        return error != null;
-    }
-
     public T getResult() {
         Validate.validState(hasResult(), "Result not available");
         return result;
-    }
-
-    public T getResultOrNull() {
-        if (!hasResult()) {
-            return null;
-        }
-
-        return result;
-    }
-
-    public ParseError getError() {
-        Validate.validState(hasError(), "Error not available");
-        return error;
     }
 }

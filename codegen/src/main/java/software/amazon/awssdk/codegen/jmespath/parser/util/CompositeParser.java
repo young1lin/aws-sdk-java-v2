@@ -37,7 +37,7 @@ public final class CompositeParser<T> implements Parser<T> {
     public CompositeParser<T> thenTry(Parser<T> nextParser) {
         return new CompositeParser<>((start, end) -> {
             ParseResult<T> parse = parser.parse(start, end);
-            if (parse.hasError()) {
+            if (!parse.hasResult()) {
                 return nextParser.parse(start, end);
             }
 
