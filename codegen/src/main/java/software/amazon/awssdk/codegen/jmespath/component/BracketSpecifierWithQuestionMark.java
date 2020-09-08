@@ -15,6 +15,9 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
+/**
+ * A {@link BracketSpecifier} with a question-mark expression, as in [?Foo].
+ */
 public class BracketSpecifierWithQuestionMark {
     private final Expression expression;
 

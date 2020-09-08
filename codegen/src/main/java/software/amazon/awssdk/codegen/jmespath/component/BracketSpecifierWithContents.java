@@ -15,12 +15,19 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
-import java.util.List;
 import software.amazon.awssdk.utils.Validate;
 
+/**
+ * A {@link BracketSpecifier} with some kind of content. Either:
+ * <ul>
+ *     <li>A number, as in [1]</li>
+ *     <li>A star expression, as in [*]</li>
+ *     <li>A slice expression, as in [1:2:3]</li>
+ * </ul>
+ */
 public class BracketSpecifierWithContents {
     private Integer number;
-    private StarExpression starExpression;
+    private WildcardExpression wildcardExpression;
     private SliceExpression sliceExpression;
 
     private BracketSpecifierWithContents() {
@@ -33,10 +40,10 @@ public class BracketSpecifierWithContents {
         return result;
     }
 
-    public static BracketSpecifierWithContents starExpression(StarExpression starExpression) {
-        Validate.notNull(starExpression, "starExpression");
+    public static BracketSpecifierWithContents wildcardExpression(WildcardExpression wildcardExpression) {
+        Validate.notNull(wildcardExpression, "wildcardExpression");
         BracketSpecifierWithContents result = new BracketSpecifierWithContents();
-        result.starExpression = starExpression;
+        result.wildcardExpression = wildcardExpression;
         return result;
     }
 
@@ -47,13 +54,12 @@ public class BracketSpecifierWithContents {
         return result;
     }
 
-
-    public boolean isInteger() {
+    public boolean isNumber() {
         return number != null;
     }
 
-    public boolean isStarExpression() {
-        return starExpression != null;
+    public boolean isWildcardExpression() {
+        return wildcardExpression != null;
     }
 
     public boolean isSliceExpression() {
@@ -61,13 +67,13 @@ public class BracketSpecifierWithContents {
     }
 
     public int asNumber() {
-        Validate.validState(isInteger(), "Not a Integer");
+        Validate.validState(isNumber(), "Not a Number");
         return number;
     }
 
-    public StarExpression asStarExpression() {
-        Validate.validState(isStarExpression(), "Not a StarExpression");
-        return starExpression;
+    public WildcardExpression asWildcardExpression() {
+        Validate.validState(isWildcardExpression(), "Not a WildcardExpression");
+        return wildcardExpression;
     }
 
     public SliceExpression asSliceExpression() {
@@ -75,4 +81,26 @@ public class BracketSpecifierWithContents {
         return sliceExpression;
     }
 
+    public void visit(Visitor visitor) {
+        if (isNumber()) {
+            visitor.visitNumber(asNumber());
+        } else if (isWildcardExpression()) {
+            visitor.visitWildcardExpression(asWildcardExpression());
+        } else if (isSliceExpression()) {
+            visitor.visitSliceExpression(asSliceExpression());
+        } else {
+            throw new IllegalStateException();
+        }
+    }
+
+    public interface Visitor {
+        default void visitNumber(int asNumber) {
+        }
+
+        default void visitWildcardExpression(WildcardExpression asWildcardExpression) {
+        }
+
+        default void visitSliceExpression(SliceExpression asSliceExpression) {
+        }
+    }
 }

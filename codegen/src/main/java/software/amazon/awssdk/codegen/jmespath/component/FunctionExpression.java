@@ -17,6 +17,11 @@ package software.amazon.awssdk.codegen.jmespath.component;
 
 import java.util.List;
 
+/**
+ * A function allowing users to easily transform and filter data in JMESPath expressions.
+ *
+ * https://jmespath.org/specification.html#functions-expressions
+ */
 public class FunctionExpression {
     private final String function;
     private final List<FunctionArg> functionArgs;

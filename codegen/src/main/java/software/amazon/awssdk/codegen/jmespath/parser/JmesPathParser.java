@@ -43,12 +43,17 @@ import software.amazon.awssdk.codegen.jmespath.component.OrExpression;
 import software.amazon.awssdk.codegen.jmespath.component.ParenExpression;
 import software.amazon.awssdk.codegen.jmespath.component.PipeExpression;
 import software.amazon.awssdk.codegen.jmespath.component.SliceExpression;
-import software.amazon.awssdk.codegen.jmespath.component.StarExpression;
 import software.amazon.awssdk.codegen.jmespath.component.SubExpression;
 import software.amazon.awssdk.codegen.jmespath.component.SubExpressionRight;
+import software.amazon.awssdk.codegen.jmespath.component.WildcardExpression;
 import software.amazon.awssdk.codegen.jmespath.parser.util.CompositeParser;
 import software.amazon.awssdk.utils.Logger;
 
+/**
+ * Parses a JMESPath expression string into an {@link Expression}.
+ *
+ * This implements the grammar described here: https://jmespath.org/specification.html#grammar
+ */
 public class JmesPathParser {
     private static final Logger log = Logger.loggerFor(JmesPathParser.class);
 
@@ -58,6 +63,9 @@ public class JmesPathParser {
         this.input = input;
     }
 
+    /**
+     * Parses a JMESPath expression string into a {@link Expression}.
+     */
     public static Expression parse(String jmesPathString) {
         return new JmesPathParser(jmesPathString).parse();
     }
@@ -68,7 +76,7 @@ public class JmesPathParser {
             throw new IllegalArgumentException("Failed to parse expression.");
         }
 
-        return expression.getResult();
+        return expression.result();
     }
 
     /**
@@ -95,7 +103,7 @@ public class JmesPathParser {
                               .thenTry(this::parseAndExpression, Expression::andExpression)
                               .thenTry(this::parseNotExpression, Expression::notExpression)
                               .thenTry(this::parseParenExpression, Expression::parenExpression)
-                              .thenTry(this::parseStarExpression, Expression::starExpression)
+                              .thenTry(this::parseWildcardExpression, Expression::wildcardExpression)
                               .thenTry(this::parseMultiSelectList, Expression::multiSelectList)
                               .thenTry(this::parseMultiSelectHash, Expression::multiSelectHash)
                               .thenTry(this::parseLiteral, Expression::literal)
@@ -129,14 +137,14 @@ public class JmesPathParser {
                                .thenTry(this::parseMultiSelectList, SubExpressionRight::multiSelectList)
                                .thenTry(this::parseMultiSelectHash, SubExpressionRight::multiSelectHash)
                                .thenTry(this::parseFunctionExpression, SubExpressionRight::functionExpression)
-                               .thenTry(this::parseStarExpression, SubExpressionRight::starExpression)
+                               .thenTry(this::parseWildcardExpression, SubExpressionRight::wildcardExpression)
                                .parse(dotPosition + 1, endPosition);
 
             if (!rightSide.hasResult()) {
                 continue;
             }
 
-            return ParseResult.success(new SubExpression(leftSide.getResult(), rightSide.getResult()));
+            return ParseResult.success(new SubExpression(leftSide.result(), rightSide.result()));
         }
 
         logError("sub-expression", "Invalid sub-expression", startPosition);
@@ -181,7 +189,7 @@ public class JmesPathParser {
                 continue;
             }
 
-            return ParseResult.success(constructor.apply(leftSide.getResult(), rightSide.getResult()));
+            return ParseResult.success(constructor.apply(leftSide.result(), rightSide.result()));
         }
 
         logError("binary-expression", "Invalid binary-expression", startPosition);
@@ -249,7 +257,7 @@ public class JmesPathParser {
                 continue;
             }
 
-            return ParseResult.success(IndexExpression.indexExpression(leftSide.getResult(), rightSide.getResult()));
+            return ParseResult.success(IndexExpression.indexExpression(leftSide.result(), rightSide.result()));
         }
 
         logError("index-expression with lhs-expression", "Invalid index-expression with lhs-expression", startPosition);
@@ -304,7 +312,7 @@ public class JmesPathParser {
                 continue;
             }
 
-            results.add(result.getResult());
+            results.add(result.result());
             startOfSecondEntry = comma + 1;
         }
 
@@ -331,7 +339,7 @@ public class JmesPathParser {
                 continue;
             }
 
-            results.add(entry.getResult());
+            results.add(entry.result());
 
             startPositionAfterComma = commaPosition + 1;
         }
@@ -341,7 +349,7 @@ public class JmesPathParser {
             logError("multi-select", "Ambiguous separation", startPosition);
             return ParseResult.error();
         }
-        results.add(entry.getResult());
+        results.add(entry.result());
 
         return ParseResult.success(results);
     }
@@ -365,7 +373,7 @@ public class JmesPathParser {
                 continue;
             }
 
-            return ParseResult.success(new KeyValueExpression(identifier.getResult(), expression.getResult()));
+            return ParseResult.success(new KeyValueExpression(identifier.result(), expression.result()));
         }
 
         logError("keyval-expr", "Invalid keyval-expr", startPosition);
@@ -398,7 +406,7 @@ public class JmesPathParser {
 
         // "[" (number / "*" / slice-expression) "]"
         return CompositeParser.firstTry(this::parseNumber, BracketSpecifier::withNumberContents)
-                              .thenTry(this::parseStarExpression, BracketSpecifier::withStarExpressionContents)
+                              .thenTry(this::parseWildcardExpression, BracketSpecifier::withWildcardExpressionContents)
                               .thenTry(this::parseSliceExpression, BracketSpecifier::withSliceExpressionContents)
                               .parse(startPosition + 1, endPosition - 1);
     }
@@ -425,9 +433,9 @@ public class JmesPathParser {
                     continue;
                 }
 
-                return ParseResult.success(new ComparatorExpression(lhsExpression.getResult(),
+                return ParseResult.success(new ComparatorExpression(lhsExpression.result(),
                                                                     comparator,
-                                                                    rhsExpression.getResult()));
+                                                                    rhsExpression.result()));
             }
         }
 
@@ -475,7 +483,7 @@ public class JmesPathParser {
             if (!firstNumberParse.hasResult()) {
                 return ParseResult.error();
             }
-            firstNumber = Optional.of(firstNumberParse.getResult());
+            firstNumber = Optional.of(firstNumberParse.result());
         }
 
         // Parse the second number (if it exists)
@@ -485,7 +493,7 @@ public class JmesPathParser {
             if (!secondNumberParse.hasResult()) {
                 return ParseResult.error();
             }
-            secondNumber = Optional.of(secondNumberParse.getResult());
+            secondNumber = Optional.of(secondNumberParse.result());
         }
 
         // Parse the third number (if it exists)
@@ -495,22 +503,12 @@ public class JmesPathParser {
             if (!thirdNumberParse.hasResult()) {
                 return ParseResult.error();
             }
-            thirdNumber = Optional.of(thirdNumberParse.getResult());
+            thirdNumber = Optional.of(thirdNumberParse.result());
         }
 
         return ParseResult.success(new SliceExpression(firstNumber.orElse(null),
                                                        secondNumber.orElse(null),
                                                        thirdNumber.orElse(null)));
-    }
-
-    private int numDigits(int value) {
-        int result = 0;
-        long counter = 1;
-        while (counter <= result) {
-            result++;
-            counter *= 10;
-        }
-        return result;
     }
 
     /**
@@ -535,7 +533,7 @@ public class JmesPathParser {
         return CompositeParser.firstTry(this::parseNoArgs)
                               .thenTry(this::parseOneOrMoreArgs)
                               .parse(paramIndex, endPosition)
-                              .mapResult(args -> new FunctionExpression(functionNameParse.getResult(), args));
+                              .mapResult(args -> new FunctionExpression(functionNameParse.result(), args));
     }
 
     /**
@@ -638,20 +636,20 @@ public class JmesPathParser {
         for (int i = startPosition; i < endPosition; i++) {
             ParseResult<String> rawStringChar = parseLegalRawStringChar(i, i + 1);
             if (rawStringChar.hasResult()) {
-                result.append(rawStringChar.getResult());
+                result.append(rawStringChar.result());
                 continue;
             }
 
             ParseResult<String> preservedEscape = parsePreservedEscape(i, i + 2);
             if (preservedEscape.hasResult()) {
-                result.append(preservedEscape.getResult());
+                result.append(preservedEscape.result());
                 ++i;
                 continue;
             }
 
             ParseResult<String> rawStringEscape = parseRawStringEscape(i, i + 2);
             if (rawStringEscape.hasResult()) {
-                result.append(rawStringEscape.getResult());
+                result.append(rawStringEscape.result());
                 ++i;
                 continue;
             }
@@ -891,20 +889,20 @@ public class JmesPathParser {
         for (int i = stringStart; i < stringEnd; i++) {
             ParseResult<String> unescapedChar = parseUnescapedChar(i, i + 1);
             if (unescapedChar.hasResult()) {
-                result.append(unescapedChar.getResult());
+                result.append(unescapedChar.result());
                 continue;
             }
 
             ParseResult<String> escapedChar = parseEscapedChar(i, i + 2);
             if (escapedChar.hasResult()) {
-                result.append(escapedChar.getResult());
+                result.append(escapedChar.result());
                 ++i;
                 continue;
             }
 
             ParseResult<String> escapedUnicodeSequence = parseEscapedUnicodeSequence(i, i + 6);
             if (escapedUnicodeSequence.hasResult()) {
-                result.append(escapedUnicodeSequence.getResult());
+                result.append(escapedUnicodeSequence.result());
                 i += 5;
                 continue;
             }
@@ -1021,8 +1019,8 @@ public class JmesPathParser {
     /**
      * "*"
      */
-    private ParseResult<StarExpression> parseStarExpression(int startPosition, int endPosition) {
-        return parseExpectedToken("star-expression", startPosition, endPosition, '*').mapResult(v -> new StarExpression());
+    private ParseResult<WildcardExpression> parseWildcardExpression(int startPosition, int endPosition) {
+        return parseExpectedToken("star-expression", startPosition, endPosition, '*').mapResult(v -> new WildcardExpression());
     }
 
     private int charsInRange(int startPosition, int endPosition) {
@@ -1088,6 +1086,6 @@ public class JmesPathParser {
     }
 
     private void logError(String parser, String message, int position) {
-        System.err.println(parser + " at " + position + ": " + message);
+        log.debug(() -> parser + " at " + position + ": " + message);
     }
 }

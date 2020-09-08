@@ -17,6 +17,14 @@ package software.amazon.awssdk.codegen.jmespath.component;
 
 import software.amazon.awssdk.utils.Validate;
 
+/**
+ * A bracket specifier within an {@link IndexExpression}. Either:
+ * <ul>
+ *     <li>With content, as in [1], [*] or [1:2:3]: {@link BracketSpecifierWithContents}</li>
+ *     <li>Without content, as in []: {@link BracketSpecifierWithContents}</li>
+ *     <li>With question-mark content, as in [?foo]: {@link BracketSpecifierWithQuestionMark}</li>
+ * </ul>
+ */
 public class BracketSpecifier {
     private BracketSpecifierWithContents bracketSpecifierWithContents;
     private BracketSpecifierWithoutContents bracketSpecifierWithoutContents;
@@ -37,8 +45,8 @@ public class BracketSpecifier {
         return withContents(BracketSpecifierWithContents.sliceExpression(sliceExpression));
     }
 
-    public static BracketSpecifier withStarExpressionContents(StarExpression starExpression) {
-        return withContents(BracketSpecifierWithContents.starExpression(starExpression));
+    public static BracketSpecifier withWildcardExpressionContents(WildcardExpression wildcardExpression) {
+        return withContents(BracketSpecifierWithContents.wildcardExpression(wildcardExpression));
     }
 
     public static BracketSpecifier withoutContents() {
@@ -81,16 +89,26 @@ public class BracketSpecifier {
         return bracketSpecifierWithQuestionMark;
     }
 
-//    void visit(Visitor visitor);
-//
-//    interface Visitor {
-//        default void visitBracketSpecifierWithContents(BracketSpecifierWithContents bracketSpecifierWithContents) {
-//        }
-//
-//        default void visitBracketSpecifierWithoutContents(BracketSpecifierWithoutContents bracketSpecifierWithContents) {
-//        }
-//
-//        default void visitBracketSpecifierWithQuestionMark(BracketSpecifierWithQuestionMark bracketSpecifierWithContents) {
-//        }
-//    }
+    public void visit(Visitor visitor) {
+        if (isBracketSpecifierWithContents()) {
+            visitor.visitBracketSpecifierWithContents(asBracketSpecifierWithContents());
+        } else if (isBracketSpecifierWithoutContents()) {
+            visitor.visitBracketSpecifierWithoutContents(asBracketSpecifierWithoutContents());
+        } else if (isBracketSpecifierWithQuestionMark()) {
+            visitor.visitBracketSpecifierWithQuestionMark(asBracketSpecifierWithQuestionMark());
+        } else {
+            throw new IllegalStateException();
+        }
+    }
+
+    public interface Visitor {
+        default void visitBracketSpecifierWithContents(BracketSpecifierWithContents bracketSpecifierWithContents) {
+        }
+
+        default void visitBracketSpecifierWithoutContents(BracketSpecifierWithoutContents bracketSpecifierWithContents) {
+        }
+
+        default void visitBracketSpecifierWithQuestionMark(BracketSpecifierWithQuestionMark bracketSpecifierWithContents) {
+        }
+    }
 }

@@ -21,6 +21,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * A multiselect expression is used to extract a subset of elements from a JSON hash. Each expression in the multi-select-list
+ * will be evaluated against the JSON document. Each returned element will be the result of evaluating the expression.
+ *
+ * https://jmespath.org/specification.html#multiselect-list
+ */
 public class MultiSelectList {
     private final List<Expression> expressions;
 

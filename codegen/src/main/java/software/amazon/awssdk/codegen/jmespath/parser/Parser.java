@@ -15,7 +15,13 @@
 
 package software.amazon.awssdk.codegen.jmespath.parser;
 
+/**
+ * A JMESPath parser, for generating a {@link ParseResult} from a string between two provided bounds.
+ */
 @FunctionalInterface
 public interface Parser<T> {
+    /**
+     * Parse a JMESPath string between the start position (inclusive) and end position (exclusive).
+     */
     ParseResult<T> parse(int startPosition, int endPosition);
 }

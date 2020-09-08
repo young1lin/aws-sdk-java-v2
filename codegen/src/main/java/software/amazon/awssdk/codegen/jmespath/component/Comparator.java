@@ -15,9 +15,9 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
+/**
+ * A comparator within a {@link ComparatorExpression}.
+ */
 public enum Comparator {
     LESS_THAN_OR_EQUAL("<="),
     EQUAL("=="),
@@ -26,25 +26,10 @@ public enum Comparator {
     LESS_THAN("<"),
     GREATER_THAN(">");
 
-    private static final Map<String, Comparator> TOKEN_SYMBOLS;
-
-    static {
-        TOKEN_SYMBOLS = new LinkedHashMap<>();
-        Comparator[] values = values();
-
-        for (Comparator value : values) {
-            TOKEN_SYMBOLS.put(value.tokenSymbol, value);
-        }
-    }
-
     private final String tokenSymbol;
 
     Comparator(String tokenSymbol) {
         this.tokenSymbol = tokenSymbol;
-    }
-
-    public static Comparator fromTokenSymbol(String tokenSymbol) {
-        return TOKEN_SYMBOLS.get(tokenSymbol);
     }
 
     public String tokenSymbol() {

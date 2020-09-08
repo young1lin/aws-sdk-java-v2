@@ -15,6 +15,12 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
+/**
+ * An expression type is an expression prefixed by "&". These are used within {@link FunctionExpression}s as a lambda to be
+ * invoked by the JMESPath function where they are needed.
+ *
+ * For an example in practice, see the sort_by function: https://jmespath.org/specification.html#func-sort-by
+ */
 public class ExpressionType {
     private final Expression expression;
 

@@ -18,6 +18,13 @@ package software.amazon.awssdk.codegen.jmespath.component;
 import java.util.Optional;
 import software.amazon.awssdk.utils.Validate;
 
+/**
+ * An index expression is used to access elements in a list. Indexing is 0 based, the index of 0 refers to the first element
+ * of the list. A negative number is a valid index. A negative number indicates that indexing is relative to the end of the
+ * list.
+ *
+ * https://jmespath.org/specification.html#index-expressions
+ */
 public class IndexExpression {
     private final Expression expression;
     private final BracketSpecifier bracketSpecifier;

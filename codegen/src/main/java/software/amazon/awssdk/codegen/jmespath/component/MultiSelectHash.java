@@ -21,6 +21,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * A multi-select-hash expression is similar to a multi-select-list {@link MultiSelectList} expression, except that a hash is
+ * created instead of a list. A multi-select-hash expression also requires key names to be provided, as specified in the
+ * keyval-expr ({@link KeyValueExpression} rule.
+ *
+ * https://jmespath.org/specification.html#multiselect-hash
+ */
 public class MultiSelectHash {
     private final List<KeyValueExpression> expressions;
 

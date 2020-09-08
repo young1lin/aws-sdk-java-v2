@@ -18,6 +18,10 @@ package software.amazon.awssdk.codegen.jmespath.component;
 
 import software.amazon.awssdk.utils.Validate;
 
+/**
+ * An argument to a {@link FunctionExpression}. Either a {@link Expression} that is evaluated and passed to the function or a
+ * {@link ExpressionType} that is passed to the function as-is and is evaluated by the function.
+ */
 public class FunctionArg {
     private Expression expression;
     private ExpressionType expressionType;

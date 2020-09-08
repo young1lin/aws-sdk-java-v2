@@ -18,6 +18,10 @@ package software.amazon.awssdk.codegen.jmespath.parser;
 import java.util.function.Function;
 import software.amazon.awssdk.utils.Validate;
 
+/**
+ * The result of a {@link Parser#parse(int, int)} call. This is either successful ({@link #success}) or an error
+ * ({@link #error()}).
+ */
 public final class ParseResult<T> {
     private final T result;
 
@@ -25,15 +29,24 @@ public final class ParseResult<T> {
         this.result = result;
     }
 
+    /**
+     * Create a successful result with the provided value.
+     */
     public static <T> ParseResult<T> success(T result) {
         Validate.notNull(result, "result");
         return new ParseResult<>(result);
     }
 
+    /**
+     * Create an error result.
+     */
     public static <T> ParseResult<T> error() {
         return new ParseResult<>(null);
     }
 
+    /**
+     * Convert the value in this parse result (if successful) using the provided function.
+     */
     public <U> ParseResult<U> mapResult(Function<T, U> mapper) {
         if (hasResult()) {
             return ParseResult.success(mapper.apply(result));
@@ -42,11 +55,17 @@ public final class ParseResult<T> {
         }
     }
 
+    /**
+     * Returns true if the parse result was successful.
+     */
     public boolean hasResult() {
         return result != null;
     }
 
-    public T getResult() {
+    /**
+     * Returns the result of parsing.
+     */
+    public T result() {
         Validate.validState(hasResult(), "Result not available");
         return result;
     }

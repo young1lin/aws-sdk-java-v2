@@ -17,6 +17,12 @@ package software.amazon.awssdk.codegen.jmespath.component;
 
 import software.amazon.awssdk.utils.Validate;
 
+/**
+ * An expression is any statement that can be executed in isolation from other parts of a JMESPath string. Every valid JMESPath
+ * string is an expression, usually made up of other expressions.
+ *
+ * Examples: https://jmespath.org/examples.html
+ */
 public class Expression {
     private SubExpression subExpression;
     private IndexExpression indexExpression;
@@ -26,7 +32,7 @@ public class Expression {
     private AndExpression andExpression;
     private NotExpression notExpression;
     private ParenExpression parenExpression;
-    private StarExpression starExpression;
+    private WildcardExpression wildcardExpression;
     private MultiSelectList multiSelectList;
     private MultiSelectHash multiSelectHash;
     private Literal literal;
@@ -91,10 +97,10 @@ public class Expression {
         return expression;
     }
 
-    public static Expression starExpression(StarExpression starExpression) {
-        Validate.notNull(starExpression, "starExpression");
+    public static Expression wildcardExpression(WildcardExpression wildcardExpression) {
+        Validate.notNull(wildcardExpression, "wildcardExpression");
         Expression expression = new Expression();
-        expression.starExpression = starExpression;
+        expression.wildcardExpression = wildcardExpression;
         return expression;
     }
 
@@ -147,7 +153,6 @@ public class Expression {
         return expression;
     }
 
-
     public boolean isSubExpression() {
         return subExpression != null;
     }
@@ -180,8 +185,8 @@ public class Expression {
         return parenExpression != null;
     }
 
-    public boolean isStarExpression() {
-        return starExpression != null;
+    public boolean isWildcardExpression() {
+        return wildcardExpression != null;
     }
 
     public boolean isMultiSelectList() {
@@ -252,9 +257,9 @@ public class Expression {
         return parenExpression;
     }
 
-    public StarExpression asStarExpression() {
-        Validate.validState(isStarExpression(), "Not a StarExpression");
-        return starExpression;
+    public WildcardExpression asWildcardExpression() {
+        Validate.validState(isWildcardExpression(), "Not a WildcardExpression");
+        return wildcardExpression;
     }
 
     public MultiSelectList asMultiSelectList() {
@@ -292,59 +297,96 @@ public class Expression {
         return currentNode;
     }
 
-//
-//    void visit(Visitor visitor);
-//
-//    interface Visitor {
-//        default void visitExpression(Expression expression) {
-//        }
-//
-//        default void visitSubExpression(SubExpression subExpression) {
-//        }
-//
-//        default void visitIndexExpression(IndexExpression indexExpression) {
-//        }
-//
-//        default void visitComparatorExpression(ComparatorExpression comparatorExpression) {
-//        }
-//
-//        default void visitOrExpression(OrExpression orExpression) {
-//        }
-//
-//        default void visitIdentifier(String identifier) {
-//        }
-//
-//        default void visitAndExpression(AndExpression andExpression) {
-//        }
-//
-//        default void visitNotExpression(NotExpression notExpression) {
-//        }
-//
-//        default void visitParenExpression(ParenExpression parenExpression) {
-//        }
-//
-//        default void visitStarExpression(StarExpression star) {
-//        }
-//
-//        default void visitMultiSelectList(MultiSelectList multiSelectList) {
-//        }
-//
-//        default void visitMultiSelectHash(MultiSelectHash multiSelectHash) {
-//        }
-//
-//        default void visitLiteral(Literal literal) {
-//        }
-//
-//        default void visitFunctionExpression(FunctionExpression functionExpression) {
-//        }
-//
-//        default void visitPipeExpression(PipeExpression pipeExpression) {
-//        }
-//
-//        default void visitRawString(String rawString) {
-//        }
-//
-//        default void visitCurrentNode(CurrentNode currentNode) {
-//        }
-//    }
+    public void visit(Visitor visitor) {
+        if (isSubExpression()) {
+            visitor.visitSubExpression(asSubExpression());
+        } else if (isSubExpression()) {
+            visitor.visitSubExpression(asSubExpression());
+        } else if (isIndexExpression()) {
+            visitor.visitIndexExpression(asIndexExpression());
+        } else if (isComparatorExpression()) {
+            visitor.visitComparatorExpression(asComparatorExpression());
+        } else if (isOrExpression()) {
+            visitor.visitOrExpression(asOrExpression());
+        } else if (isIdentifier()) {
+            visitor.visitIdentifier(asIdentifier());
+        } else if (isAndExpression()) {
+            visitor.visitAndExpression(asAndExpression());
+        } else if (isNotExpression()) {
+            visitor.visitNotExpression(asNotExpression());
+        } else if (isParenExpression()) {
+            visitor.visitParenExpression(asParenExpression());
+        } else if (isWildcardExpression()) {
+            visitor.visitWildcardExpression(asWildcardExpression());
+        } else if (isMultiSelectList()) {
+            visitor.visitMultiSelectList(asMultiSelectList());
+        } else if (isMultiSelectHash()) {
+            visitor.visitMultiSelectHash(asMultiSelectHash());
+        } else if (isLiteral()) {
+            visitor.visitLiteral(asLiteral());
+        } else if (isFunctionExpression()) {
+            visitor.visitFunctionExpression(asFunctionExpression());
+        } else if (isPipeExpression()) {
+            visitor.visitPipeExpression(asPipeExpression());
+        } else if (isRawString()) {
+            visitor.visitRawString(asRawString());
+        } else if (isCurrentNode()) {
+            visitor.visitCurrentNode(asCurrentNode());
+        } else {
+            throw new IllegalStateException();
+        }
+    }
+
+    public interface Visitor {
+        default void visitExpression(Expression expression) {
+        }
+
+        default void visitSubExpression(SubExpression subExpression) {
+        }
+
+        default void visitIndexExpression(IndexExpression indexExpression) {
+        }
+
+        default void visitComparatorExpression(ComparatorExpression comparatorExpression) {
+        }
+
+        default void visitOrExpression(OrExpression orExpression) {
+        }
+
+        default void visitIdentifier(String identifier) {
+        }
+
+        default void visitAndExpression(AndExpression andExpression) {
+        }
+
+        default void visitNotExpression(NotExpression notExpression) {
+        }
+
+        default void visitParenExpression(ParenExpression parenExpression) {
+        }
+
+        default void visitWildcardExpression(WildcardExpression star) {
+        }
+
+        default void visitMultiSelectList(MultiSelectList multiSelectList) {
+        }
+
+        default void visitMultiSelectHash(MultiSelectHash multiSelectHash) {
+        }
+
+        default void visitLiteral(Literal literal) {
+        }
+
+        default void visitFunctionExpression(FunctionExpression functionExpression) {
+        }
+
+        default void visitPipeExpression(PipeExpression pipeExpression) {
+        }
+
+        default void visitRawString(String rawString) {
+        }
+
+        default void visitCurrentNode(CurrentNode currentNode) {
+        }
+    }
 }

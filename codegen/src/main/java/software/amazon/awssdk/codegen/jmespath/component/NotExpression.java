@@ -15,6 +15,13 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
+/**
+ * A not-expression negates the result of an expression. If the expression results in a truth-like value, a
+ * not-expression will change this value to false. If the expression results in a false-like value, a not-expression will
+ * change this value to true.
+ *
+ * https://jmespath.org/specification.html#not-expressions
+ */
 public class NotExpression {
     private final Expression expression;
 

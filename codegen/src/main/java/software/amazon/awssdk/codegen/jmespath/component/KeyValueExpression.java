@@ -15,6 +15,9 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
+/**
+ * A key-value expression within a {@link MultiSelectHash}.
+ */
 public class KeyValueExpression {
     private final String key;
     private final Expression value;

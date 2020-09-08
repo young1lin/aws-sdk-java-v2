@@ -15,25 +15,12 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
-public interface BracketSpecifierContent {
-    boolean isNumber();
-    boolean isStarExpression();
-    boolean isSliceExpression();
-
-    int asNumber();
-    StarExpression asStarExpression();
-    SliceExpression asSliceExpression();
-
-    void visit(Visitor visitor);
-
-    interface Visitor {
-        default void visitNumber(int number) {
-        }
-
-        default void visitStarExpression(StarExpression star) {
-        }
-
-        default void visitSliceExpression(SliceExpression sliceExpression) {
-        }
-    }
+/**
+ * A wildcard expression is a expression of either * or [*]. A wildcard expression can return multiple elements, and the
+ * remaining expressions are evaluated against each returned element from a wildcard expression. The [*] syntax applies to a
+ * list type and the * syntax applies to a hash type.
+ *
+ * https://jmespath.org/specification.html#wildcard-expressions
+ */
+public class WildcardExpression {
 }

@@ -15,5 +15,8 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
+/**
+ * A {@link BracketSpecifier} without content, i.e. [].
+ */
 public class BracketSpecifierWithoutContents {
 }

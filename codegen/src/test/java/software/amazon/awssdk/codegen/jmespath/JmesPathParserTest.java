@@ -58,7 +58,7 @@ public class JmesPathParserTest {
     public void testSubExpressionWithStar() {
         Expression expression = JmesPathParser.parse("foo.*");
         assertThat(expression.asSubExpression().leftExpression().asIdentifier()).isEqualTo("foo");
-        assertThat(expression.asSubExpression().rightSubExpression().isStarExpression()).isTrue();
+        assertThat(expression.asSubExpression().rightSubExpression().isWildcardExpression()).isTrue();
     }
 
     @Test
@@ -95,9 +95,9 @@ public class JmesPathParserTest {
     }
 
     @Test
-    public void testStarExpression() {
+    public void testWildcardExpression() {
         Expression expression = JmesPathParser.parse("*");
-        assertThat(expression.isStarExpression()).isTrue();
+        assertThat(expression.isWildcardExpression()).isTrue();
     }
 
     @Test
@@ -121,7 +121,7 @@ public class JmesPathParserTest {
         Expression expression = JmesPathParser.parse("[*]");
         assertThat(expression.isIndexExpression()).isTrue();
         assertThat(expression.asIndexExpression().expression()).isNotPresent();
-        assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().isStarExpression()).isTrue();
+        assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().isWildcardExpression()).isTrue();
     }
 
     @Test
@@ -151,7 +151,7 @@ public class JmesPathParserTest {
         Expression expression = JmesPathParser.parse("foo[*]");
         assertThat(expression.isIndexExpression()).isTrue();
         assertThat(expression.asIndexExpression().expression()).hasValueSatisfying(e -> assertThat(e.asIdentifier()).isEqualTo("foo"));
-        assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().isStarExpression()).isTrue();
+        assertThat(expression.asIndexExpression().bracketSpecifier().asBracketSpecifierWithContents().isWildcardExpression()).isTrue();
     }
 
     @Test

@@ -15,13 +15,13 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
-import com.fasterxml.jackson.jr.ob.JSON;
-import com.fasterxml.jackson.jr.stree.JacksonJrsTreeCodec;
 import com.fasterxml.jackson.jr.stree.JrsValue;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import software.amazon.awssdk.codegen.internal.Jackson;
 
+/**
+ * A literal JSON value embedded in a JMESPath expression.
+ *
+ * https://jmespath.org/specification.html#literal-expressions
+ */
 public class Literal {
     private final JrsValue jsonValue;
 

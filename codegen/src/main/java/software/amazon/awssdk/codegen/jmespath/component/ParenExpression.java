@@ -15,6 +15,11 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
+/**
+ * A paren-expression allows a user to override the precedence order of an expression, e.g. (a || b) && c.
+ *
+ * https://jmespath.org/specification.html#paren-expressions
+ */
 public class ParenExpression {
     private final Expression expression;
 

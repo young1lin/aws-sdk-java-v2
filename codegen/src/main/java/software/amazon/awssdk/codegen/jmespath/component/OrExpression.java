@@ -15,6 +15,20 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
+/**
+ * An or expression will evaluate to either the left expression or the right expression. If the evaluation of the left
+ * expression is not false it is used as the return value. If the evaluation of the right expression is not false it is
+ * used as the return value. If neither the left or right expression are non-null, then a value of null is returned.
+ *
+ * Examples:
+ * <ul>
+ * <li>True || False</li>
+ * <li>Number || EmptyList</li>
+ * <li>a == `1` || b == `2`</li>
+ * </ul>
+ *
+ * https://jmespath.org/specification.html#or-expressions
+ */
 public class OrExpression {
     private final Expression leftExpression;
     private final Expression rightExpression;

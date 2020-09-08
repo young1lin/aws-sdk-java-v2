@@ -17,6 +17,12 @@ package software.amazon.awssdk.codegen.jmespath.component;
 
 import java.util.OptionalInt;
 
+/**
+ * A slice expression allows you to select a contiguous subset of an array. A slice has a start, stop, and step value. The
+ * general form of a slice is [start:stop:step], but each component is optional and can be omitted.
+ *
+ * https://jmespath.org/specification.html#slices
+ */
 public class SliceExpression {
     private final Integer start;
     private final Integer stop;

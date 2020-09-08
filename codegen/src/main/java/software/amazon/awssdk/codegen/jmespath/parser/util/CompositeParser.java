@@ -19,6 +19,10 @@ import java.util.function.Function;
 import software.amazon.awssdk.codegen.jmespath.parser.ParseResult;
 import software.amazon.awssdk.codegen.jmespath.parser.Parser;
 
+/**
+ * A {@link Parser} that invokes a list of converters, returning the first converter that was successful. This is created
+ * using {@link #firstTry(Parser)} and new converters are added via {@link #thenTry(Parser)}.
+ */
 public final class CompositeParser<T> implements Parser<T> {
     private final Parser<T> parser;
 
@@ -26,14 +30,24 @@ public final class CompositeParser<T> implements Parser<T> {
         this.parser = parser;
     }
 
+    /**
+     * Create a {@link CompositeParser} that tries the provided parser first.
+     */
     public static <T> CompositeParser<T> firstTry(Parser<T> parser) {
         return new CompositeParser<>(parser);
     }
 
+    /**
+     * Create a {@link CompositeParser} that tries the provided parser first, converting the result of that parser using the
+     * provided function.
+     */
     public static <T, U> CompositeParser<U> firstTry(Parser<T> parser, Function<T, U> resultConverter) {
         return firstTry((start, end) -> parser.parse(start, end).mapResult(resultConverter));
     }
 
+    /**
+     * Create a new {@link CompositeParser} that tries the provided parser after all previous parsers.
+     */
     public CompositeParser<T> thenTry(Parser<T> nextParser) {
         return new CompositeParser<>((start, end) -> {
             ParseResult<T> parse = parser.parse(start, end);
@@ -45,6 +59,10 @@ public final class CompositeParser<T> implements Parser<T> {
         });
     }
 
+    /**
+     * Create a new {@link CompositeParser} that tries the provided parser after all previous parsers, converting the result of
+     * that parser using the provided function.
+     */
     public <S> CompositeParser<T> thenTry(Parser<S> nextParser, Function<S, T> resultConverter) {
         return thenTry((start, end) -> nextParser.parse(start, end).mapResult(resultConverter));
     }

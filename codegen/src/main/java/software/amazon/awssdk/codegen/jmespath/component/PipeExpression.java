@@ -15,6 +15,19 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
+/**
+ * A pipe expression combines two expressions, separated by the | character. It is similar to a sub-expression with two
+ * important distinctions:
+ *
+ * <ol>
+ *     <li>Any expression can be used on the right hand side. A sub-expression restricts the type of expression that can be used
+ *     on the right hand side.</li>
+ *     <li>A pipe-expression stops projections on the left hand side from propagating to the right hand side. If the left
+ *     expression creates a projection, it does not apply to the right hand side.</li>
+ * </ol>
+ *
+ * https://jmespath.org/specification.html#pipe-expressions
+ */
 public class PipeExpression {
     private final Expression leftExpression;
     private final Expression rightExpression;

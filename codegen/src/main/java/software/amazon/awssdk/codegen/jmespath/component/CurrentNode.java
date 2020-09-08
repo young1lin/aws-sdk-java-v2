@@ -15,5 +15,8 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
+/**
+ * The current-node expression '@': https://jmespath.org/specification.html#current-node
+ */
 public class CurrentNode {
 }

@@ -15,6 +15,15 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
+/**
+ * A comparator expression is two expressions separated by a {@link Comparator}.
+ *
+ * Examples:
+ * <ul>
+ *     <li>Foo == Bar</li>
+ *     <li>Bar <= `101</li>
+ * </ul>
+ */
 public class ComparatorExpression {
     private final Expression leftExpression;
     private final Comparator comparator;

@@ -15,6 +15,20 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
+/**
+ * An and expression will evaluate to either the left expression or the right expression. If the expression on the left hand side
+ * is a truth-like value, then the value on the right hand side is returned. Otherwise the result of the expression on the left
+ * hand side is returned.
+ *
+ * Examples:
+ * <ul>
+ * <li>True && False</li>
+ * <li>Number && EmptyList</li>
+ * <li>a == `1` && b == `2`</li>
+ * </ul>
+ *
+ * https://jmespath.org/specification.html#and-expressions
+ */
 public class AndExpression {
     private final Expression leftExpression;
     private final Expression rightExpression;

@@ -22,7 +22,7 @@ public class SubExpressionRight {
     private MultiSelectList multiSelectList;
     private MultiSelectHash multiSelectHash;
     private FunctionExpression functionExpression;
-    private StarExpression starExpression;
+    private WildcardExpression wildcardExpression;
 
     public static SubExpressionRight identifier(String identifier) {
         Validate.notNull(identifier, "identifier");
@@ -52,10 +52,10 @@ public class SubExpressionRight {
         return result;
     }
 
-    public static SubExpressionRight starExpression(StarExpression starExpression) {
-        Validate.notNull(starExpression, "starExpression");
+    public static SubExpressionRight wildcardExpression(WildcardExpression wildcardExpression) {
+        Validate.notNull(wildcardExpression, "wildcardExpression");
         SubExpressionRight result = new SubExpressionRight();
-        result.starExpression = starExpression;
+        result.wildcardExpression = wildcardExpression;
         return result;
     }
 
@@ -76,8 +76,8 @@ public class SubExpressionRight {
         return functionExpression != null;
     }
 
-    public boolean isStarExpression() {
-        return starExpression != null;
+    public boolean isWildcardExpression() {
+        return wildcardExpression != null;
     }
 
     public String asIdentifier() {
@@ -100,9 +100,9 @@ public class SubExpressionRight {
         return functionExpression;
     }
 
-    public StarExpression asStarExpression() {
-        Validate.validState(isStarExpression(), "Not a StarExpression");
-        return starExpression;
+    public WildcardExpression asWildcardExpression() {
+        Validate.validState(isWildcardExpression(), "Not a WildcardExpression");
+        return wildcardExpression;
     }
 
 
@@ -121,7 +121,7 @@ public class SubExpressionRight {
 //        default void visitFunctionExpression(FunctionExpression functionExpression) {
 //        }
 //
-//        default void visitStarExpression(StarExpression starExpression) {
+//        default void visitWildcardExpression(WildcardExpression wildcardExpression) {
 //        }
 //    }
 }

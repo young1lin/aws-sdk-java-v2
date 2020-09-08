@@ -15,6 +15,15 @@
 
 package software.amazon.awssdk.codegen.jmespath.component;
 
+/**
+ * A subexpression is a combination of two expressions separated by the ‘.’ char. A subexpression is evaluated as follows:
+ * <ol>
+ *     <li>Evaluate the expression on the left with the original JSON document.</li>
+ *     <li>Evaluate the expression on the right with the result of the left expression evaluation.</li>
+ * </ol>
+ *
+ * https://jmespath.org/specification.html#subexpressions
+ */
 public class SubExpression {
     private final Expression leftExpression;
     private final SubExpressionRight rightSide;
